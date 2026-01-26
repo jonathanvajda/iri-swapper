@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Myna SPARQL Mapper</title>
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#1f2937" />
+
+  <!-- Local vendored imports only -->
+  <link rel="stylesheet" href="./styles/normalize.min.css">
+  <link rel="stylesheet" href="./styles/skeleton.min.css">
+  <link rel="stylesheet" href="./styles/tabulator.min.css">
+
+  <!-- Reuse your existing scoped CSS -->
+  <link rel="stylesheet" href="./styles/app.css" />
+</head>
+
+<body>
+  <div id="mb-app" class="mb-app">
+    <header class="mb-header">
+      <div>
+        <h1 class="mb-title">Myna SPARQL Mapper</h1>
+        <p class="mb-subtitle">Preview and apply IRI renames in SPARQL queries — offline-capable, browser-only.</p>
+      </div>
+      <div class="mb-headerActions">
+        <button id="mbToggleThemeBtn" class="mb-btn mb-btnSecondary" type="button">Toggle theme</button>
+      </div>
+    </header>
+
+    <section class="mb-grid">
+      <div class="mb-card">
+        <h2 class="mb-h2">1) Load SPARQL query</h2>
+        <p class="mb-muted">Drop a <code>.rq</code> or <code>.sparql</code> file. We extract PREFIX/BASE and stage IRIs used in the query.</p>
+
+        <div class="mb-row">
+          <div class="mb-dropzone" id="queryDrop">
+            <div class="mb-dropTitle">Drop SPARQL query here</div>
+            <div class="mb-dropHint">…or choose a file</div>
+            <input id="queryFile" type="file" accept=".rq,.sparql" />
+          </div>
+
+          <div class="mb-panel">
+            <label class="mb-check">
+              <input id="useNativePrefixes" type="checkbox" checked />
+              Use query’s native prefixes in output (default on)
+            </label>
+
+            <div class="mb-mini">
+              <div><strong>Run ID:</strong> <span id="queryRunId">—</span></div>
+              <div><strong>Detected BASE:</strong> <span id="baseIri">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <details class="mb-details">
+          <summary>Prefixes (JSON)</summary>
+          <pre id="prefixJson" class="mb-pre">{}</pre>
+        </details>
+
+        <div class="mb-actions">
+          <button id="ingestQueryBtn" class="mb-btn" type="button">Ingest query</button>
+        </div>
+      </div>
+
+      <div class="mb-card">
+        <h2 class="mb-h2">2) Load mapping file</h2>
+        <p class="mb-muted">CSV/TSV/XLS/XLSX with headers: <code>Old IRI</code>, <code>New IRI</code>.</p>
+
+        <div class="mb-row">
+          <div class="mb-dropzone" id="mappingDrop">
+            <div class="mb-dropTitle">Drop mapping file here</div>
+            <div class="mb-dropHint">…or choose a file</div>
+            <input id="mappingFile" type="file" accept=".csv,.tsv,.xls,.xlsx" />
+          </div>
+
+          <div class="mb-panel">
+            <div class="mb-mini">
+              <div><strong>Mapping rows:</strong> <span id="mappingRows">0</span></div>
+              <div><strong>Unique “Old IRI”:</strong> <span id="mappingUniqueOld">0</span></div>
+              <div><strong>Duplicates (Old IRI):</strong> <span id="mappingDupOld">0</span></div>
+            </div>
+
+            <div class="mb-actions">
+              <button id="ingestMappingBtn" class="mb-btn mb-btnSecondary" type="button">Ingest mapping</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-card mb-cardWide">
+        <h2 class="mb-h2">3) Preview staged changes</h2>
+
+        <div class="mb-kpis">
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">Unique IRIs/tokens staged</div>
+            <div class="mb-kpiValue" id="kpiTokens">0</div>
+          </div>
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">Mapping IRIs (unique old)</div>
+            <div class="mb-kpiValue" id="kpiMapping">0</div>
+          </div>
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">Changes proposed</div>
+            <div class="mb-kpiValue" id="kpiProposed">0</div>
+          </div>
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">% staged changed</div>
+            <div class="mb-kpiValue" id="kpiPct">0%</div>
+          </div>
+        </div>
+
+        <div class="mb-actions">
+          <button id="buildPreviewBtn" class="mb-btn" type="button">Build preview table</button>
+          <button id="applyMappingBtn" class="mb-btn mb-btnDanger" type="button">Apply mapping → create output run</button>
+        </div>
+
+        <div id="table" class="mb-table"></div>
+
+        <div class="mb-runbar">
+          <div class="mb-runbarLeft">
+            <label class="mb-label" for="runsSelect">Runs (IndexedDB)</label>
+            <select id="runsSelect" class="mb-select"></select>
+            <button id="loadRunBtn" class="mb-btn mb-btnSecondary" type="button">Load run</button>
+            <button id="deleteRunBtn" class="mb-btn mb-btnSecondary" type="button">Delete run</button>
+            <button id="clearRunsBtn" class="mb-btn mb-btnSecondary" type="button">Clear all</button>
+          </div>
+
+          <div class="mb-runbarRight">
+            <button id="downloadBtn" class="mb-btn" type="button">Download output (.rq)</button>
+          </div>
+        </div>
+
+        <details class="mb-details" open>
+          <summary>Output preview</summary>
+          <textarea id="outputPreview" class="mb-textarea" spellcheck="false"></textarea>
+        </details>
+
+        <div class="mb-status" id="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <footer class="mb-footer">
+      <div class="mb-muted">Offline works on <code>https://</code> or <code>http://localhost</code>.</div>
+    </footer>
+  </div>
+
+  <!-- Local vendored imports only -->
+  <script src="./scripts/tabulator.min.js"></script>
+  <script src="./scripts/papaparse.min.js"></script>
+  <script src="./scripts/xlsx.full.min.js"></script>
+
+  <!-- New JS (does not touch your existing app.js) -->
+  <script type="module" src="./scripts/sparql.js"></script>
+</body>
+</html>

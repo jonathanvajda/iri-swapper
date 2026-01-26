@@ -11,5 +11,9 @@
       "sizes": "any",
       "type": "image/svg+xml"
     }
+  ],
+  "shortcuts": [
+    { "name": "Ontology Mapper", "url": "./index.html" },
+    { "name": "SPARQL Mapper", "url": "./sparql.html" }
   ]
 }

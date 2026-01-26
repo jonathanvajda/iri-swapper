@@ -8,6 +8,7 @@ const CACHE_RUNTIME = `${CACHE_VERSION}-runtime`;
 const SHELL_ASSETS = [
   "./",
   "./index.html",
+  './sparql-iri-swapper.html',
   "./styles/normalize.css",
   "./styles/skeleton.css",
   "./styles/tabulator.min.css",
@@ -19,6 +20,7 @@ const SHELL_ASSETS = [
   "./scripts/xlsx.full.min.js",
   "./scripts/rdflib.min.js",
   "./scripts/app.js",
+  './scripts/sparql.js',
   "./manifest.webmanifest",
   "./icon.svg",
   "./sw.js",
