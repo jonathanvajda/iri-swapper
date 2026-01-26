@@ -1,0 +1,15 @@
+{
+  "name": "Myna IRI Mapper",
+  "short_name": "Myna",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1f2937",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

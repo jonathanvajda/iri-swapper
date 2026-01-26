@@ -1,0 +1,181 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Myna IRI Mapper</title>
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#1f2937" />
+
+  <link rel="stylesheet" href="./styles/normalize.min.css" />
+  <link rel="stylesheet" href="./styles/skeleton.min.css" />
+
+  <!-- Tabulator (sortable/filterable table) -->
+  <link rel="stylesheet" href="./styles/tabulator.min.css" />
+  <script src="./scripts/tabulator.min.js"></script>
+
+  <!-- N3 (Turtle/N-Triples/N-Quads core) -->
+  <script src="./scripts/n3.min.js"></script>
+
+  <!-- jsonld.js (JSON-LD <-> N-Quads) -->
+  <script src="./scripts/jsonld.min.js"></script>
+
+  <!-- PapaParse (CSV/TSV) -->
+  <script src="./scripts/papaparse.min.js"></script>
+
+  <!-- SheetJS (XLS/XLSX) -->
+  <script src="./scripts/xlsx.full.min.js"></script>
+
+  <!-- rdflib.js (RDF/XML parse/serialize interop) -->
+  <script src="./scripts/rdflib.min.js"></script>
+
+  <link rel="stylesheet" href="./styles/app.css" />
+</head>
+
+<body>
+  <div id="mb-app" class="mb-app">
+    <header class="mb-header">
+      <div>
+        <h1 class="mb-title">Myna IRI Mapper</h1>
+        <p class="mb-subtitle">Preview and apply IRI renames safely — offline-capable, browser-only.</p>
+      </div>
+      <div class="mb-headerActions">
+        <button id="mbToggleThemeBtn" class="mb-btn mb-btnSecondary" type="button">Toggle theme</button>
+      </div>
+    </header>
+
+    <section class="mb-grid">
+      <div class="mb-card">
+        <h2 class="mb-h2">1) Load ontology</h2>
+        <p class="mb-muted">
+          Supports TTL, N-Triples, JSON-LD, RDF/XML (most “.owl” files are RDF/XML).
+        </p>
+
+        <div class="mb-row">
+          <div class="mb-dropzone" id="ontologyDrop">
+            <div class="mb-dropTitle">Drop ontology here</div>
+            <div class="mb-dropHint">…or choose a file</div>
+            <input id="ontologyFile" type="file" accept=".ttl,.nt,.nq,.trig,.rdf,.owl,.xml,.jsonld,.json" />
+          </div>
+
+          <div class="mb-panel">
+            <label class="mb-label" for="baseIri">Base IRI (used for RDF/XML parsing if needed)</label>
+            <input id="baseIri" class="mb-input" type="text" value="urn:myna:base:" />
+
+            <label class="mb-check">
+              <input id="useNativePrefixes" type="checkbox" checked />
+              Use ontology’s native prefixes in output (default on)
+            </label>
+
+            <div class="mb-mini">
+              <div><strong>Detected format:</strong> <span id="ontologyFormat">—</span></div>
+              <div><strong>Run ID:</strong> <span id="ontologyRunId">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <details class="mb-details">
+          <summary>Prefixes (JSON)</summary>
+          <pre id="prefixJson" class="mb-pre">{}</pre>
+        </details>
+
+        <div class="mb-actions">
+          <button id="loadOntologyBtn" class="mb-btn" type="button">Ingest ontology</button>
+        </div>
+      </div>
+
+      <div class="mb-card">
+        <h2 class="mb-h2">2) Load mapping file</h2>
+        <p class="mb-muted">CSV/TSV/XLS/XLSX with headers: <code>Old IRI</code>, <code>New IRI</code>. Extra columns ignored.</p>
+
+        <div class="mb-row">
+          <div class="mb-dropzone" id="mappingDrop">
+            <div class="mb-dropTitle">Drop mapping file here</div>
+            <div class="mb-dropHint">…or choose a file</div>
+            <input id="mappingFile" type="file" accept=".csv,.tsv,.xls,.xlsx" />
+          </div>
+
+          <div class="mb-panel">
+            <div class="mb-mini">
+              <div><strong>Mapping rows:</strong> <span id="mappingRows">0</span></div>
+              <div><strong>Unique “Old IRI”:</strong> <span id="mappingUniqueOld">0</span></div>
+              <div><strong>Duplicates (Old IRI):</strong> <span id="mappingDupOld">0</span></div>
+            </div>
+            <div class="mb-actions">
+              <button id="loadMappingBtn" class="mb-btn mb-btnSecondary" type="button">Ingest mapping</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-card mb-cardWide">
+        <h2 class="mb-h2">3) Preview staged changes</h2>
+
+        <div class="mb-kpis">
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">IRIs in ontology</div>
+            <div class="mb-kpiValue" id="kpiOntologyIris">0</div>
+          </div>
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">IRIs in mapping (unique old)</div>
+            <div class="mb-kpiValue" id="kpiMappingIris">0</div>
+          </div>
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">Changes proposed</div>
+            <div class="mb-kpiValue" id="kpiProposedChanges">0</div>
+          </div>
+          <div class="mb-kpi">
+            <div class="mb-kpiLabel">% resources changed</div>
+            <div class="mb-kpiValue" id="kpiPctChanged">0%</div>
+          </div>
+        </div>
+
+        <div class="mb-actions">
+          <button id="buildPreviewBtn" class="mb-btn" type="button">Build preview table</button>
+          <button id="applyMappingBtn" class="mb-btn mb-btnDanger" type="button">Apply mapping → create output run</button>
+        </div>
+
+        <div id="table" class="mb-table"></div>
+
+        <div class="mb-runbar">
+          <div class="mb-runbarLeft">
+            <label class="mb-label" for="runsSelect">Runs (IndexedDB)</label>
+            <select id="runsSelect" class="mb-select"></select>
+            <button id="loadRunBtn" class="mb-btn mb-btnSecondary" type="button">Load run</button>
+            <button id="deleteRunBtn" class="mb-btn mb-btnSecondary" type="button">Delete run</button>
+            <button id="clearRunsBtn" class="mb-btn mb-btnSecondary" type="button">Clear all</button>
+          </div>
+
+          <div class="mb-runbarRight">
+            <label class="mb-label" for="exportFormat">Export format</label>
+            <select id="exportFormat" class="mb-select">
+              <option value="text/turtle">Turtle (.ttl)</option>
+              <option value="application/n-triples">N-Triples (.nt)</option>
+              <option value="application/rdf+xml">RDF/XML (.rdf)</option>
+              <option value="application/ld+json">JSON-LD (.jsonld)</option>
+            </select>
+            <button id="downloadBtn" class="mb-btn" type="button">Download output</button>
+          </div>
+        </div>
+
+        <details class="mb-details" open>
+          <summary>Output preview (Turtle)</summary>
+          <textarea id="outputPreview" class="mb-textarea" spellcheck="false"></textarea>
+        </details>
+
+        <div class="mb-status" id="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <footer class="mb-footer">
+      <div class="mb-muted">
+        Offline support uses a Service Worker. Works on <code>https://</code> or <code>http://localhost</code>.
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "tabulator": {
+    "version": "6.3.1",
+    "js": "https://cdnjs.cloudflare.com/ajax/libs/tabulator/6.3.1/js/tabulator.min.js",
+    "css": "https://cdnjs.cloudflare.com/ajax/libs/tabulator/6.3.1/css/tabulator.min.css"
+  },
+  "papaparse": {
+    "version": "5.4.1",
+    "js": "https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"
+  },
+  "sheetjs": {
+    "version": "0.20.3",
+    "js": "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+  },
+  "n3": {
+    "version": "1.24.0",
+    "js": "https://unpkg.com/n3@1.24.0/browser/n3.min.js"
+  },
+  "jsonld": {
+    "version": "8.3.3",
+    "js": "https://cdnjs.cloudflare.com/ajax/libs/jsonld/8.3.3/jsonld.min.js"
+  },
+  "rdflib": {
+    "version": "2.3.2",
+    "js": "https://cdn.jsdelivr.net/npm/rdflib@2.3.2/dist/rdflib.min.js"
+  },
+  "normalize": {
+    "version": "8.0.1",
+    "css": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
+  },
+  "skeleton": {
+    "version": "2.0.4",
+    "css": "https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"
+  }
+}
