@@ -1,4 +1,4 @@
-/* app.js (ES module) - core logic stays out of the DOM; DOM only supplies options/events */
+/* ont-iri-swapper.js (ES module) - core logic stays out of the DOM; DOM only supplies options/events */
 
 const APP = {
   dbName: "myna-iri-mapper-db",

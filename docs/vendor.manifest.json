@@ -26,10 +26,10 @@
   },
   "normalize": {
     "version": "8.0.1",
-    "css": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
+    "css": "https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css"
   },
   "skeleton": {
     "version": "2.0.4",
-    "css": "https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"
+    "css": "https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.css"
   }
 }

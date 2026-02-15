@@ -9,43 +9,41 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#1f2937" />
 
-  <link rel="stylesheet" href="./styles/normalize.min.css" />
-  <link rel="stylesheet" href="./styles/skeleton.min.css" />
+  <link rel="stylesheet" href="./styles/normalize.css" />
+  <link rel="stylesheet" href="./styles/skeleton.css" />
 
   <!-- Tabulator (sortable/filterable table) -->
   <link rel="stylesheet" href="./styles/tabulator.min.css" />
-  <script src="./scripts/tabulator.min.js"></script>
+  <script src="./app/tabulator.min.js"></script>
 
   <!-- N3 (Turtle/N-Triples/N-Quads core) -->
-  <script src="./scripts/n3.min.js"></script>
+  <script src="./app/n3.min.js"></script>
 
   <!-- jsonld.js (JSON-LD <-> N-Quads) -->
-  <script src="./scripts/jsonld.min.js"></script>
+  <script src="./app/jsonld.min.js"></script>
 
   <!-- PapaParse (CSV/TSV) -->
-  <script src="./scripts/papaparse.min.js"></script>
+  <script src="./app/papaparse.min.js"></script>
 
   <!-- SheetJS (XLS/XLSX) -->
-  <script src="./scripts/xlsx.full.min.js"></script>
+  <script src="./app/xlsx.full.min.js"></script>
 
   <!-- rdflib.js (RDF/XML parse/serialize interop) -->
-  <script src="./scripts/rdflib.min.js"></script>
+  <script src="./app/rdflib.min.js"></script>
 
-  <link rel="stylesheet" href="./styles/app.css" />
+  <link rel="stylesheet" href="./styles/app-base.css" />
+  <link rel="stylesheet" href="./styles/site-header.css" />
+  <link rel="stylesheet" href="./styles/iri-swapper.css" />
 </head>
 
-<body>
+<body data-page-id="myna-iri-swapper">
+  <header id="siteHeader" class="sitehdr-root" role="banner" aria-label="Site header"></header>
+
   <div id="mb-app" class="mb-app">
-    <header class="mb-header">
-      <div>
-        <h1 class="mb-title">Myna IRI Mapper</h1>
-        <p class="mb-subtitle">Preview and apply IRI renames safely — offline-capable, browser-only.</p>
-      </div>
+      <h1 class="mb-title">Myna Ontology IRI Swapper</h1>
       <div class="mb-headerActions">
         <button id="mbToggleThemeBtn" class="mb-btn mb-btnSecondary" type="button">Toggle theme</button>
       </div>
-    </header>
-
     <section class="mb-grid">
       <div class="mb-card">
         <h2 class="mb-h2">1) Load ontology</h2>
@@ -176,6 +174,10 @@
     </footer>
   </div>
 
-  <script type="module" src="./scripts/app.js"></script>
+  <!-- Header -->
+  <script src="./app/site-header.js"></script>
+
+  <script type="module" src="./app/ont-iri-swapper.js"></script>
+
 </body>
 </html>

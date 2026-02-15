@@ -1,4 +1,4 @@
-/* sparql.js - SPARQL query IRI mapper (runs in parallel to your ontology tool; no edits to existing JS) */
+/* sparql-iri-swapper.js - SPARQL query IRI mapper (runs in parallel to your ontology tool; no edits to existing JS) */
 
 const DB = {
   name: "myna-sparql-mapper-db",
