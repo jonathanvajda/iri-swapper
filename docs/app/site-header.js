@@ -29,7 +29,7 @@
         title: "Data Exploration",
         items: [
           { label: "OntoEagle", href: "/search.html", pageId: "ontoeagle" },
-          { label: "IRI Registry", href: "/iri-registry.html", pageId: "iri-registry" },
+        //  { label: "IRI Registry", href: "/iri-registry.html", pageId: "iri-registry" },
           { label: "Ontology Tabulator", href: "https://jonathanvajda.github.io/ontology-tabulator/", pageId: "ontology-tabulator" },
         ],
       },
@@ -46,9 +46,9 @@
         items: [
         //  { label: "Controlled Vocabulary", href: "/controlled-vocabulary-registry.html", pageId: "controlled-vocabulary-registry" },
           { label: "Tabular Ontology Maker (TOM)", href: "https://jonathanvajda.github.io/tabular-ontology-maker/", pageId: "tom" },
-          { label: "Table Nova", href: "/table-nova.html", pageId: "table-nova" },
+          { label: "Table Nova", href: "https://jonathanvajda.github.io/table-nova/", pageId: "table-nova" },
           { label: "Knowledge Graph Modeler 🔗", href: "https://skreen5hot.github.io/kgModeler/", pageId: "kg-modeler" },
-          { label: "SHACL Generator", href: "/shacl-generator.html", pageId: "shacl-generator" },
+        //  { label: "SHACL Generator", href: "/shacl-generator.html", pageId: "shacl-generator" },
         ],
       },
       {
