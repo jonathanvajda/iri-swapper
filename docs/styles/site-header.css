@@ -71,6 +71,7 @@
   display: inline-flex;
   height: 130px;   /* match main logo height */
   width: auto;
+  max-width: 160px;
 }
 
 .sitehdr-tool__title {

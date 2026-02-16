@@ -20,6 +20,7 @@
         "sparql-pattern-visualizer": { src: "./images/sparql-pattern-visualizer.svg", alt: "SPARQL Pattern Visualizer" },
         "ontology-curation-manager": { src: "./images/ontology-curation-manager.svg", alt: "Ontology Curation Manager" },
         "myna-iri-swapper": { src: "./images/myna-iri-swapper.svg", alt: "Myna IRI Swapper" },
+        "visual-lynx": { src: "./images/visual-lynx.svg", alt: "Visual Lynx" },
       },
       defaultToolLogo: { src: "./images/default.svg", alt: "Tool" }
     },
@@ -31,6 +32,7 @@
           { label: "OntoEagle", href: "/search.html", pageId: "ontoeagle" },
         //  { label: "IRI Registry", href: "/iri-registry.html", pageId: "iri-registry" },
           { label: "Ontology Tabulator", href: "https://jonathanvajda.github.io/ontology-tabulator/", pageId: "ontology-tabulator" },
+          { label: "Visual Lynx", href: "https://jonathanvajda.github.io/visual-lynx/", pageId: "visual-lynx" },
         ],
       },
 {
