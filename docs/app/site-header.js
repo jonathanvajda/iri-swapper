@@ -1,4 +1,4 @@
-// ./scripts/site-header.js
+// ./app/site-header.js
 (() => {
   "use strict";
 
@@ -8,34 +8,47 @@
       mainLogo: { href: "/", src: "./images/main-logo.png", alt: "Your org/site" },
       toolLogoByPageId: {
         "ontoeagle": { src: "./images/Eagle-VI_1753264913.svg", alt: "OntoEagle Semantic Lookup" },
-        "iri-registry": { src: "./images/iri-registry.svg", alt: "IRI Registry" },
         "ontology-tabulator": { src: "./images/ontology-tabulator.svg", alt: "Ontology Tabulator" },
         "cq-ferret": { src: "./images/cq-ferret.svg", alt: "CQ Ferret" },
         "bp-weaver": { src: "./images/bp-weaver.svg", alt: "BP Weaver" },
         "controlled-vocabulary-registry": { src: "./images/controlled-vocabulary-registry.svg", alt: "Controlled Vocabulary Registry" },
         "tom": { src: "./images/tom.svg", alt: "Tabular Ontology Maker" },
         "table-nova": { src: "./images/table-nova-logo.svg", alt: "Table Nova" },
-        "shacl-generator": { src: "./images/shacl-generator.svg", alt: "SHACL Generator" },
         "axiolotl": { src: "./images/axiolotl.svg", alt: "Axiolotl SPARQL & Inference" },
         "sparql-pattern-visualizer": { src: "./images/sparql-pattern-visualizer.svg", alt: "SPARQL Pattern Visualizer" },
-        "ontology-curation-manager": { src: "./images/ontology-curation-manager.svg", alt: "Ontology Curation Manager" },
         "myna-iri-swapper": { src: "./images/myna-iri-swapper.svg", alt: "Myna IRI Swapper" },
         "visual-lynx": { src: "./images/visual-lynx.svg", alt: "Visual Lynx" },
       },
-      defaultToolLogo: { src: "./images/default.svg", alt: "Tool" }
+      defaultToolLogo: { src: "./images/default-logo.png", alt: "Semantic Tools" },
+      titleByPageId: {
+        "ontoeagle": { title: "OntoEagle Semantic Lookup" },
+        "iri-registry": { title: "IRI Registry" },
+        "ontology-tabulator": { title: "Ontology Tabulator" },
+        "cq-ferret": { title: "CQ Ferret" },
+        "bp-weaver": { title: "BP Weaver" },
+        "controlled-vocabulary-registry": { title: "Controlled Vocabulary Registry" },
+        "tom": { title: "Tabular Ontology Maker" },
+        "table-nova": { title: "Table Nova" },
+        "shacl-generator": { title: "SHACL Generator" },
+        "axiolotl": { title: "Axiolotl SPARQL & Inference" },
+        "sparql-pattern-visualizer": { title: "SPARQL Pattern Visualizer" },
+        "ontology-curation-manager": { title: "Ontology Curation Manager" },
+        "myna-iri-swapper": { title: "Myna IRI Swapper" },
+        "visual-lynx": { title: "Visual Lynx" },
+        }
     },
 
     groups: [
       {
         title: "Data Exploration",
         items: [
-          { label: "OntoEagle", href: "/search.html", pageId: "ontoeagle" },
+          { label: "OntoEagle", href: "https://jonathanvajda.github.io/OntoEagle", pageId: "ontoeagle" },
         //  { label: "IRI Registry", href: "/iri-registry.html", pageId: "iri-registry" },
           { label: "Ontology Tabulator", href: "https://jonathanvajda.github.io/ontology-tabulator/", pageId: "ontology-tabulator" },
           { label: "Visual Lynx", href: "https://jonathanvajda.github.io/visual-lynx/", pageId: "visual-lynx" },
         ],
       },
-{
+      {
         title: "Domain Analysis",
         items: [
     /**          { label: "Competency Question Ferret", href: "/cq-ferret.html", pageId: "cq-ferret" },
@@ -132,8 +145,8 @@
     const toolLogo = pickToolLogo(pageId);
 
     const mainLogo = HEADER_CONFIG.brand?.mainLogo || { href: "/", src: "", alt: "" };
+    const title = HEADER_CONFIG.brand?.titleByPageId?.[pageId]?.title || toolLogo.alt || "Semantic Tools";
 
-    // IMPORTANT: menu is INSIDE sitehdr-bar as the 3rd sibling => renders to the right
     mount.innerHTML = `
       <div class="sitehdr">
         <div class="sitehdr-bar">
@@ -147,7 +160,7 @@
             <img class="sitehdr-tool__img"
                  src="${escapeHtml(toolLogo.src)}"
                  alt="${escapeHtml(toolLogo.alt)}" />
-                 <h1 class="sitehdr-tool__title">${escapeHtml(toolLogo.alt)}</h1>
+                 <h1 class="sitehdr-tool__title" style="margin-left: 2rem;">${escapeHtml(title)}</h1>
           </div>
 
           ${buildSectionsHtml(pageId)}
