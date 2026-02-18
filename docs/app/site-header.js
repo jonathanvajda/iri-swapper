@@ -15,7 +15,6 @@
         "tom": { src: "./images/tom.svg", alt: "Tabular Ontology Maker" },
         "table-nova": { src: "./images/table-nova-logo.svg", alt: "Table Nova" },
         "axiolotl": { src: "./images/axiolotl.svg", alt: "Axiolotl SPARQL & Inference" },
-        "sparql-pattern-visualizer": { src: "./images/sparql-pattern-visualizer.svg", alt: "SPARQL Pattern Visualizer" },
         "myna-iri-swapper": { src: "./images/myna-iri-swapper.png", alt: "Myna IRI Swapper" },
         "visual-lynx": { src: "./images/visual-lynx.svg", alt: "Visual Lynx" },
       },
@@ -35,6 +34,7 @@
         "ontology-curation-manager": { title: "Ontology Curation Manager" },
         "myna-iri-swapper": { title: "Myna IRI Swapper" },
         "visual-lynx": { title: "Visual Lynx" },
+        "linked-data-transformer": { title: "Linked-Data Transformer" },
         }
     },
 
@@ -71,6 +71,7 @@
         items: [
           { label: "Axiolotl SPARQL & Inference", href: "https://jonathanvajda.github.io/axiolotl/", pageId: "axiolotl" },
           { label: "SPARQL Pattern Visualizer", href: "https://jonathanvajda.github.io/sparql-pattern-visualizer/", pageId: "sparql-pattern-visualizer" },
+          { label: "Linked-Data Transformer", href: "https://jonathanvajda.github.io/visual-lynx/linked-data-transformer.html", pageId: "linked-data-transformer" },
         ],
       },
       {
