@@ -14,25 +14,12 @@
 
   <!-- Tabulator (sortable/filterable table) -->
   <link rel="stylesheet" href="./styles/tabulator.min.css" />
-  <script src="./app/tabulator.min.js"></script>
 
-  <!-- N3 (Turtle/N-Triples/N-Quads core) -->
-  <script src="./app/n3.min.js"></script>
-
-  <!-- jsonld.js (JSON-LD <-> N-Quads) -->
-  <script src="./app/jsonld.min.js"></script>
-
-  <!-- PapaParse (CSV/TSV) -->
-  <script src="./app/papaparse.min.js"></script>
-
-  <!-- SheetJS (XLS/XLSX) -->
-  <script src="./app/xlsx.full.min.js"></script>
-
-  <!-- rdflib.js (RDF/XML parse/serialize interop) -->
-  <script src="./app/rdflib.min.js"></script>
-
+  <!-- App Global CSS -->
   <link rel="stylesheet" href="./styles/app-base.css" />
   <link rel="stylesheet" href="./styles/site-header.css" />
+  
+  <!-- App Local CSS -->
   <link rel="stylesheet" href="./styles/iri-swapper.css" />
 </head>
 
@@ -174,9 +161,18 @@
     </footer>
   </div>
 
+  <!-- Vendor JS (saved locally for stable GitHub Pages builds) -->
+  <script src="./app/tabulator.min.js"></script>
+  <script src="./app/n3.min.js"></script>
+  <script src="./app/jsonld.min.js"></script>
+  <script src="./app/papaparse.min.js"></script>
+  <script src="./app/xlsx.full.min.js"></script>
+  <script src="./app/rdflib.min.js"></script>
+
   <!-- Header -->
   <script src="./app/site-header.js"></script>
 
+  <!-- App JS -->
   <script type="module" src="./app/ont-iri-swapper.js"></script>
 
 </body>
