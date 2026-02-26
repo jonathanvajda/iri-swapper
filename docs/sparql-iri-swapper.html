@@ -1,36 +1,115 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Myna SPARQL Mapper</title>
+  <link rel="icon" type="image/x-icon" href="./images/block-logo.png">
+  <title>Myna SPARQL IRI Swapper</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <meta name="theme-color" content="#1f2937" />
 
   <!-- Local vendored imports only -->
-  <link rel="stylesheet" href="./styles/normalize.css">
   <link rel="stylesheet" href="./styles/skeleton.css">
   <link rel="stylesheet" href="./styles/tabulator.min.css">
 
-  <!-- Reuse your existing scoped CSS -->
-  <link rel="stylesheet" href="./styles/app-base.css" />
-  <link rel="stylesheet" href="./styles/site-header.css" />
+  <!-- App Global CSS -->
+  <script>
+    (function () {
+      const APPBASE_CSS_SOURCES = [
+        /*"./styles/app-base.css",  local dev copy first */
+        "https://jonathanvajda.github.io/OntoEagle/styles/app-base.css",
+        "https://jonathanvajda.github.io/table-nova/styles/app-base.css",
+      ];
+
+      function loadCss(href) {
+        return new Promise((resolve, reject) => {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = href;
+
+          link.onload = () => resolve(href);
+          link.onerror = () => reject(new Error("CSS failed: " + href));
+
+          document.head.appendChild(link);
+        });
+      }
+
+      function showFailure(msg) {
+        console.error(msg);
+        // Optional user-visible banner
+        const style = document.createElement("style");
+        style.textContent =
+          ".asset-fail-banner{position:fixed;left:0;right:0;top:0;z-index:9999;" +
+          "padding:.5rem .75rem;font:14px system-ui;background:#ffe8e8;color:#400;" +
+          "border-bottom:1px solid rgba(0,0,0,.2)}";
+        document.head.appendChild(style);
+
+        const div = document.createElement("div");
+        div.className = "asset-fail-banner";
+        div.textContent = msg;
+        document.body ? document.body.prepend(div) : document.addEventListener("DOMContentLoaded", () => document.body.prepend(div));
+      }
+
+      (async () => {
+        for (const href of APPBASE_CSS_SOURCES) {
+          try { await loadCss(href); return; } catch (_) {}
+        }
+        showFailure("Failed to load app base CSS from all sources.");
+      })();
+    })();
+  </script>
+  <script>
+    (function () {
+      const HEADER_CSS_SOURCES = [
+        /*"./styles/site-header.css",  local dev copy first */
+        "https://jonathanvajda.github.io/OntoEagle/styles/site-header.css",
+        "https://jonathanvajda.github.io/table-nova/styles/site-header.css",
+      ];
+
+      function loadCss(href) {
+        return new Promise((resolve, reject) => {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = href;
+
+          link.onload = () => resolve(href);
+          link.onerror = () => reject(new Error("CSS failed: " + href));
+
+          document.head.appendChild(link);
+        });
+      }
+
+      function showFailure(msg) {
+        console.error(msg);
+        // Optional user-visible banner
+        const style = document.createElement("style");
+        style.textContent =
+          ".asset-fail-banner{position:fixed;left:0;right:0;top:0;z-index:9999;" +
+          "padding:.5rem .75rem;font:14px system-ui;background:#ffe8e8;color:#400;" +
+          "border-bottom:1px solid rgba(0,0,0,.2)}";
+        document.head.appendChild(style);
+
+        const div = document.createElement("div");
+        div.className = "asset-fail-banner";
+        div.textContent = msg;
+        document.body ? document.body.prepend(div) : document.addEventListener("DOMContentLoaded", () => document.body.prepend(div));
+      }
+
+      (async () => {
+        for (const href of HEADER_CSS_SOURCES) {
+          try { await loadCss(href); return; } catch (_) {}
+        }
+        showFailure("Failed to load header CSS from all sources.");
+      })();
+    })();
+  </script>
   <link rel="stylesheet" href="./styles/iri-swapper.css" />
 </head>
 
-<body data-page-id="myna-iri-swapper">
+<body data-page-id="myna-sparql-iri-swapper">
   <header id="siteHeader" class="sitehdr-root" role="banner" aria-label="Site header"></header>
 
   <div id="mb-app" class="mb-app">
-      <div>
-        <h1 class="mb-title">Myna SPARQL IRI Swapper</h1>
-        <p class="mb-subtitle">Preview and apply IRI renames in SPARQL queries — offline-capable, browser-only.</p>
-      </div>
-      <div class="mb-headerActions">
-        <button id="mbToggleThemeBtn" class="mb-btn mb-btnSecondary" type="button">Toggle theme</button>
-      </div>
-
     <section class="mb-grid">
       <div class="mb-card">
         <h2 class="mb-h2">1) Load SPARQL query</h2>
@@ -154,7 +233,46 @@
   <script src="./app/xlsx.full.min.js"></script>
 
   <!-- Header -->
-  <script src="./app/site-header.js"></script>
+  <script>
+    (function () {
+      const JS_SOURCES = [
+        /* "./app/site-header.js", local dev copy first */
+        "https://jonathanvajda.github.io/OntoEagle/app/site-header.js",
+        "https://jonathanvajda.github.io/table-nova/app/site-header.js",
+      ];
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.defer = true;
+
+          s.onload = () => resolve(src);
+          s.onerror = () => reject(new Error("JS failed: " + src));
+
+          document.head.appendChild(s);
+        });
+      }
+
+      function showFailure(msg) {
+        console.error(msg);
+        const div = document.createElement("div");
+        div.style.cssText =
+          "position:fixed;left:0;right:0;bottom:0;z-index:9999;" +
+          "padding:.5rem .75rem;font:14px system-ui;background:#ffe8e8;color:#400;" +
+          "border-top:1px solid rgba(0,0,0,.2)";
+        div.textContent = msg;
+        document.body ? document.body.appendChild(div) : document.addEventListener("DOMContentLoaded", () => document.body.appendChild(div));
+      }
+
+      (async () => {
+        for (const src of JS_SOURCES) {
+          try { await loadScript(src); return; } catch (_) {}
+        }
+        showFailure("Failed to load header JavaScript from all sources.");
+      })();
+    })();
+  </script>
 
   <!-- New JS (does not touch your existing app.js) -->
   <script type="module" src="./app/sparql-iri-swapper.js"></script>

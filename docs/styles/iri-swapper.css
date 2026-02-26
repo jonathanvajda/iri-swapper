@@ -1,37 +1,43 @@
-/* Everything is scoped under #mb-app to avoid leaking styles */
-#mb-app {
-  --bg: #0b1220;
-  --card: #111a2e;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --border: rgba(255,255,255,0.10);
-  --accent: #60a5fa;
-  --danger: #ef4444;
-  --ok: #22c55e;
-  --warn: #f59e0b;
+/* =========================================================
+   MB App (scoped)
+   - Relies on global theme tokens: --ont-*
+   - No local theme switching; use <html data-theme="dark|light">
+   ========================================================= */
 
-  background: var(--bg);
-  color: var(--text);
+#mb-app {
+  /* App-local tokens (only what base theme doesn’t provide) */
+  --mb-danger: #ef4444;
+  --mb-ok: #22c55e;
+  --mb-warn: #f59e0b;
+
+  --mb-radius-lg: 14px;
+  --mb-radius-md: 12px;
+  --mb-radius-sm: 10px;
+
+  --mb-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+
+  /* Derived surfaces */
+  --mb-surface: var(--ont-panel-bg);
+  --mb-surface-soft: color-mix(in srgb, var(--ont-panel-bg) 92%, var(--ont-text) 8%);
+  --mb-surface-ghost: color-mix(in srgb, var(--ont-panel-bg) 96%, transparent);
+
+  background: var(--ont-bg);
+  color: var(--ont-text);
   min-height: 100vh;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  font-family: var(--ont-font-body);
   line-height: 1.3;
 }
 
-#mb-app.mb-light {
-  --bg: #f7f7fb;
-  --card: #ffffff;
-  --text: #111827;
-  --muted: #6b7280;
-  --border: rgba(0,0,0,0.10);
-  --accent: #2563eb;
-}
+/* -----------------------------
+   Header
+----------------------------- */
 
 #mb-app .mb-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 18px 18px 6px;
   gap: 12px;
+  padding: 18px 18px 6px;
 }
 
 #mb-app .mb-title {
@@ -41,10 +47,17 @@
 
 #mb-app .mb-subtitle {
   margin: 6px 0 0;
-  color: var(--muted);
+  color: var(--ont-muted);
 }
 
-#mb-app .mb-headerActions { display: flex; gap: 8px; }
+#mb-app .mb-headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* -----------------------------
+   Layout
+----------------------------- */
 
 #mb-app .mb-grid {
   display: grid;
@@ -57,21 +70,6 @@
   grid-column: 1 / -1;
 }
 
-#mb-app .mb-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-}
-
-#mb-app .mb-h2 {
-  margin: 0 0 8px;
-  font-size: 16px;
-}
-
-#mb-app .mb-muted { color: var(--muted); }
-
 #mb-app .mb-row {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -79,52 +77,202 @@
   align-items: start;
 }
 
-#mb-app .mb-dropzone {
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  background: rgba(255,255,255,0.03);
-}
+/* -----------------------------
+   Cards / Panels
+----------------------------- */
 
-#mb-app .mb-dropTitle { font-weight: 700; }
-#mb-app .mb-dropHint { color: var(--muted); margin: 6px 0 10px; }
-#mb-app input[type="file"] { width: 100%; }
+#mb-app .mb-card {
+  background: var(--mb-surface);
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-lg);
+  padding: 14px;
+  box-shadow: var(--mb-shadow);
+}
 
 #mb-app .mb-panel {
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-md);
   padding: 12px;
 }
 
-#mb-app .mb-label { display:block; font-size: 12px; color: var(--muted); margin: 8px 0 6px; }
-#mb-app .mb-input, #mb-app .mb-select, #mb-app .mb-textarea {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 9px 10px;
-  background: transparent;
-  color: var(--text);
+#mb-app .mb-h2 {
+  margin: 0 0 8px;
+  font-size: 2.75rem;
 }
 
-#mb-app .mb-check { display:flex; gap: 8px; align-items:center; margin-top: 10px; color: var(--muted); }
+#mb-app .mb-muted {
+  color: var(--ont-muted);
+}
 
-#mb-app .mb-actions { display:flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+/* -----------------------------
+   Dropzone
+----------------------------- */
+
+#mb-app .mb-dropzone {
+  border: 1px dashed var(--ont-border);
+  border-radius: var(--mb-radius-md);
+  padding: 12px;
+  background: var(--mb-surface-ghost);
+}
+
+#mb-app .mb-dropTitle {
+  font-weight: 700;
+}
+
+#mb-app .mb-dropHint {
+  margin: 6px 0 10px;
+  color: var(--ont-muted);
+}
+
+#mb-app input[type="file"] {
+  width: 100%;
+}
+
+/* -----------------------------
+   Forms
+----------------------------- */
+
+#mb-app .mb-label {
+  display: block;
+  margin: 8px 0 6px;
+  font-size: 12px;
+  color: var(--ont-muted);
+}
+
+#mb-app .mb-input,
+#mb-app .mb-select,
+#mb-app .mb-textarea {
+  width: 100%;
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-sm);
+  padding: 9px 10px;
+  background: var(--ont-input-bg);
+  color: var(--ont-input-text);
+}
+
+#mb-app .mb-textarea {
+  min-height: 220px;
+  font-family: var(--ont-font-mono);
+  font-size: 12px;
+  white-space: pre;
+}
+
+#mb-app .mb-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--ont-muted);
+}
+
+/* -----------------------------
+   Buttons / Actions
+----------------------------- */
+
+#mb-app .mb-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
 
 #mb-app .mb-btn {
   line-height: normal;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(96,165,250,0.20), rgba(96,165,250,0.10));
-  color: var(--text);
-  border-radius: 12px;
-  padding: 9px 12px;
   cursor: pointer;
+
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-md);
+  padding: 9px 12px;
+
+  color: var(--ont-text);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ont-accent) 20%, transparent),
+    color-mix(in srgb, var(--ont-accent) 10%, transparent)
+  );
 }
 
-#mb-app .mb-btn:hover { border-color: rgba(96,165,250,0.45); }
-#mb-app .mb-btnSecondary { background: rgba(255,255,255,0.03); }
-#mb-app .mb-btnDanger { background: linear-gradient(180deg, rgba(239,68,68,0.25), rgba(239,68,68,0.12)); }
+#mb-app .mb-btn:hover {
+  border-color: color-mix(in srgb, var(--ont-accent) 45%, var(--ont-border));
+}
 
-#mb-app .mb-mini { font-size: 12px; color: var(--muted); display:grid; gap: 6px; margin-top: 10px; }
+#mb-app .mb-btnSecondary {
+  background: var(--mb-surface-ghost);
+}
+
+#mb-app .mb-btnDanger {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mb-danger) 25%, transparent),
+    color-mix(in srgb, var(--mb-danger) 12%, transparent)
+  );
+}
+
+/* -----------------------------
+   Mini / Details / Pre
+----------------------------- */
+
+#mb-app .mb-mini {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ont-muted);
+}
+
+#mb-app .mb-table {
+  margin-top: 10px;
+}
+
+#mb-app .mb-details {
+  margin-top: 10px;
+}
+
+#mb-app .mb-pre {
+  border: 1px solid var(--ont-code-border);
+  border-radius: var(--mb-radius-md);
+  padding: 10px;
+  background: var(--ont-code-bg);
+  overflow: auto;
+  max-height: 180px;
+}
+
+/* -----------------------------
+   Run bar / Status / Footer
+----------------------------- */
+
+#mb-app .mb-runbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+#mb-app .mb-runbarLeft,
+#mb-app .mb-runbarRight {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+#mb-app .mb-status {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: var(--mb-radius-md);
+  border: 1px solid var(--ont-border);
+  color: var(--ont-muted);
+  background: var(--mb-surface-ghost);
+}
+
+#mb-app .mb-footer {
+  padding: 0 18px 18px;
+}
+
+/* -----------------------------
+   KPIs
+----------------------------- */
 
 #mb-app .mb-kpis {
   display: grid;
@@ -134,75 +282,40 @@
 }
 
 #mb-app .mb-kpi {
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-md);
   padding: 10px;
+  background: var(--mb-surface-ghost);
 }
 
-#mb-app .mb-kpiLabel { color: var(--muted); font-size: 12px; }
-#mb-app .mb-kpiValue { font-size: 18px; margin-top: 6px; }
-
-#mb-app .mb-table { margin-top: 10px; }
-
-#mb-app .mb-details { margin-top: 10px; }
-#mb-app .mb-pre {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px;
-  background: rgba(0,0,0,0.12);
-  overflow: auto;
-  max-height: 180px;
-}
-
-#mb-app .mb-textarea {
-  min-height: 220px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+#mb-app .mb-kpiLabel {
+  color: var(--ont-muted);
   font-size: 12px;
-  white-space: pre;
 }
 
-#mb-app .mb-runbar {
-  display:flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  flex-wrap: wrap;
+#mb-app .mb-kpiValue {
+  margin-top: 6px;
+  font-size: 18px;
 }
 
-#mb-app .mb-runbarLeft, #mb-app .mb-runbarRight {
-  display:flex;
-  gap: 10px;
-  align-items: end;
-  flex-wrap: wrap;
-}
+/* -----------------------------
+   Tabulator tweaks (scoped)
+----------------------------- */
 
-#mb-app .mb-status {
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
-#mb-app .mb-footer {
-  padding: 0 18px 18px;
-}
-
-/* Tabulator tweaks (still scoped via #mb-app wrapper) */
 #mb-app .tabulator {
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-md);
   overflow: hidden;
   background: transparent;
 }
 
 #mb-app .tabulator .tabulator-header {
-  background: rgba(255,255,255,0.03);
-  border-bottom: 1px solid var(--border);
+  background: var(--mb-surface-soft);
+  border-bottom: 1px solid var(--ont-border);
 }
 
 #mb-app .tabulator .tabulator-row {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--ont-border);
   background: transparent;
 }
 
@@ -215,22 +328,56 @@
   padding-bottom: 8px;
 }
 
+/* -----------------------------
+   Row state + Pills
+----------------------------- */
+
 #mb-app .mb-rowChange {
-  outline: 1px solid rgba(245,158,11,0.45);
-  background: rgba(245,158,11,0.08) !important;
+  outline: 1px solid color-mix(in srgb, var(--mb-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--mb-warn) 10%, transparent) !important;
 }
 
 #mb-app .mb-rowNoChange {
-  opacity: 0.70;
+  opacity: 0.7;
 }
 
 #mb-app .mb-pill {
-  display:inline-block;
+  display: inline-block;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ont-border);
+  background: var(--ont-pill-bg);
+  color: var(--ont-pill-text);
 }
 
-#mb-app .mb-pillChange { color: var(--warn); }
-#mb-app .mb-pillNoChange { color: var(--muted); }
+#mb-app .mb-pillChange {
+  color: var(--mb-warn);
+}
+
+#mb-app .mb-pillNoChange {
+  color: var(--ont-muted);
+}
+
+.tabulator .tabulator-header .tabulator-col {
+  color: var(--ont-text);
+  background-color: var(--mb-surface-soft);
+}
+
+/* -----------------------------
+   Responsive (optional, but helps)
+----------------------------- */
+
+@media (max-width: 900px) {
+  #mb-app .mb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #mb-app .mb-row {
+    grid-template-columns: 1fr;
+  }
+
+  #mb-app .mb-kpis {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}
