@@ -121,10 +121,12 @@ function wireButtons() {
     setStatus("Cleared all runs.");
   });
 
-  UI.toggleThemeBtn.addEventListener("click", () => {
-    const root = document.getElementById("mb-app");
-    root.classList.toggle("mb-light");
-  });
+  if (UI.toggleThemeBtn) {
+    UI.toggleThemeBtn.addEventListener("click", () => {
+      const root = document.getElementById("mb-app");
+      if (root) root.classList.toggle("mb-light");
+    });
+  }
 }
 
 function wireDropzones() {
@@ -511,6 +513,7 @@ function rowsToMapping(rows) {
 async function buildPreviewFromRun(runId) {
   const run = await getRun(runId);
   if (!run) return setStatus("Run not found in IndexedDB.", true);
+  if (!table) initTable();
 
   Session.currentOntologyRunId = run.kind === "input" ? runId : (run.parentRunId || runId);
   Session.currentOutputRunId = run.kind === "output" ? runId : null;
@@ -953,7 +956,9 @@ function escapeHtml(str) {
 }
 
 function setStatus(msg, isError = false) {
-  UI.status.textContent = msg;
-  UI.status.style.color = isError ? "var(--danger)" : "var(--muted)";
+  if (UI.status) {
+    UI.status.textContent = msg;
+    UI.status.style.color = isError ? "var(--danger)" : "var(--muted)";
+  }
   console.log(isError ? "[myna:error]" : "[myna]", msg);
 }
