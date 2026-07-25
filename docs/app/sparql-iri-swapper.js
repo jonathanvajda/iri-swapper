@@ -5,6 +5,7 @@ const DB = {
   version: 1,
   storeRuns: "runs",
 };
+const FormatRegistry = window.FormatRegistry || {};
 
 const UI = {
   queryFile: document.getElementById("queryFile"),
@@ -927,15 +928,17 @@ async function downloadRunAsRq(runId) {
   const body = run.queryText || "";
   const name = ensureRqExtension(run.fileName || "query.rq");
 
-  const blob = new Blob([body], { type: "application/sparql-query" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  if (FormatRegistry.downloadTextFile) {
+    FormatRegistry.downloadTextFile(name, body, { mimeType: "application/sparql-query" });
+  } else {
+    const blob = new Blob([body], { type: "application/sparql-query" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
   setStatus(`Downloaded: ${name}`);
 }
 

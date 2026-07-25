@@ -5,6 +5,7 @@ const APP = {
   dbVersion: 1,
   storeRuns: "runs",
 };
+const FormatRegistry = window.FormatRegistry || {};
 
 const UI = {
   ontologyFile: document.getElementById("ontologyFile"),
@@ -250,18 +251,30 @@ async function ingestOntology(file) {
 }
 
 function detectOntologyFormat(fileName) {
-  const ext = (fileName.split(".").pop() || "").toLowerCase();
-  if (ext === "ttl" || ext === "turtle" || ext === "trig") return { contentType: "text/turtle", label: "Turtle" };
-  if (ext === "nt") return { contentType: "application/n-triples", label: "N-Triples" };
-  if (ext === "nq") return { contentType: "application/n-quads", label: "N-Quads" };
-  if (ext === "jsonld" || ext === "json") return { contentType: "application/ld+json", label: "JSON-LD" };
-  if (ext === "rdf" || ext === "owl" || ext === "xml") return { contentType: "application/rdf+xml", label: "RDF/XML (or .owl as RDF/XML)" };
+  const detected = FormatRegistry.getSupportedMimeTypeForFilename
+    ? FormatRegistry.getSupportedMimeTypeForFilename(fileName)
+    : null;
+  if (detected && detected.ok && detected.value.category === "rdf") {
+    return { contentType: detected.value.mimeType, label: detected.value.id.replace(/-/g, " ") };
+  }
+  const ext = FormatRegistry.getFilenameExtension
+    ? FormatRegistry.getFilenameExtension(fileName)
+    : (String(fileName || "").split(".").pop() || "").toLowerCase();
+  if (ext === "json") return { contentType: "application/ld+json", label: "JSON-LD" };
   return { contentType: "application/octet-stream", label: "Unknown (will attempt parsing)" };
 }
 
 async function parseOntologyToNQuads({ file, runId, baseIri }) {
   const text = await file.text();
-  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const detected = FormatRegistry.getSupportedMimeTypeForFilename
+    ? FormatRegistry.getSupportedMimeTypeForFilename(file.name)
+    : null;
+  const ext = FormatRegistry.getFilenameExtension
+    ? FormatRegistry.getFilenameExtension(file.name)
+    : (file.name.split(".").pop() || "").toLowerCase();
+  const contentType = detected && detected.ok && detected.value.category === "rdf"
+    ? detected.value.mimeType
+    : "";
 
   // Graph name for this run (all imported statements go into this named graph)
   const DF = N3.DataFactory;
@@ -271,22 +284,22 @@ async function parseOntologyToNQuads({ file, runId, baseIri }) {
   let prefixes = {};
   let quads = [];
 
-  if (ext === "ttl" || ext === "turtle" || ext === "trig") {
+  if (contentType === "text/turtle" || contentType === "application/trig") {
     prefixes = parseTurtlePrefixes(text);
-    quads = parseWithN3(text, "text/turtle", baseIri).map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else if (ext === "nt") {
+    quads = parseWithN3(text, contentType, baseIri).map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
+  } else if (contentType === "application/n-triples") {
     quads = parseWithN3(text, "application/n-triples", baseIri).map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else if (ext === "nq") {
+  } else if (contentType === "application/n-quads") {
     // If the source is already N-Quads, still re-home quads into this run graph for consistent storage
     const src = parseWithN3(text, "application/n-quads", baseIri);
     quads = src.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else if (ext === "jsonld" || ext === "json") {
+  } else if (contentType === "application/ld+json" || ext === "json") {
     const { jsonObj, contextPrefixes } = parseJsonLdPrefixes(text);
     prefixes = contextPrefixes;
     const nquads = await jsonld.toRDF(jsonObj, { format: "application/n-quads" });
     const src = parseWithN3(nquads, "application/n-quads", baseIri);
     quads = src.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else if (ext === "rdf" || ext === "owl" || ext === "xml") {
+  } else if (contentType === "application/rdf+xml") {
     // Best-effort RDF/XML. If it is true OWL 2 XML Syntax, this will likely fail.
     prefixes = parseXmlnsPrefixes(text);
     const nt = await parseRdfXmlToNTriples(text, baseIri);
@@ -312,7 +325,10 @@ async function parseOntologyToNQuads({ file, runId, baseIri }) {
 }
 
 function parseWithN3(text, format, baseIri) {
-  const parser = new N3.Parser({ format, baseIRI: baseIri });
+  const n3Format = FormatRegistry.getN3ParserFormatForMimeType
+    ? FormatRegistry.getN3ParserFormatForMimeType(format)
+    : null;
+  const parser = new N3.Parser({ format: n3Format && n3Format.ok ? n3Format.value : format, baseIRI: baseIri });
   return parser.parse(text);
 }
 
@@ -694,23 +710,25 @@ async function downloadRun(runId, contentType) {
   const ext = contentTypeToExt(contentType);
   const outName = ensureExt(fileNameBase, ext);
 
-  const blob = new Blob([body], { type: contentType });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = outName;
-  a.click();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  if (FormatRegistry.downloadTextFile) {
+    FormatRegistry.downloadTextFile(outName, body, { mimeType: contentType });
+  } else {
+    const blob = new Blob([body], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = outName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
   setStatus(`Downloaded: ${outName}`);
 }
 
 function contentTypeToExt(ct) {
-  if (ct === "text/turtle") return ".ttl";
-  if (ct === "application/n-triples") return ".nt";
-  if (ct === "application/rdf+xml") return ".rdf";
-  if (ct === "application/ld+json") return ".jsonld";
+  const preferred = FormatRegistry.getPreferredExtensionForMimeType
+    ? FormatRegistry.getPreferredExtensionForMimeType(ct)
+    : null;
+  if (preferred && preferred.ok) return `.${preferred.value}`;
   return ".txt";
 }
 

@@ -131,7 +131,7 @@
           <div class="mb-dropzone" id="ontologyDrop">
             <div class="mb-dropTitle">Drop ontology here</div>
             <div class="mb-dropHint">…or choose a file</div>
-            <input id="ontologyFile" type="file" accept=".ttl,.nt,.nq,.trig,.rdf,.owl,.xml,.jsonld,.json" />
+            <input id="ontologyFile" type="file" accept=".ttl,.turtle,.n3,.nt,.ntriples,.nq,.nquads,.trig,.rdf,.owl,.xml,.jsonld,.json-ld,.json" />
           </div>
 
           <div class="mb-panel">
@@ -227,6 +227,8 @@
             <select id="exportFormat" class="mb-select">
               <option value="text/turtle">Turtle (.ttl)</option>
               <option value="application/n-triples">N-Triples (.nt)</option>
+              <option value="application/n-quads">N-Quads (.nquads)</option>
+              <option value="application/trig">TriG (.trig)</option>
               <option value="application/rdf+xml">RDF/XML (.rdf)</option>
               <option value="application/ld+json">JSON-LD (.jsonld)</option>
             </select>
@@ -301,6 +303,7 @@
   </script>
 
   <!-- App JS -->
+  <script src="./app/shared/format-registry/browser-global.js"></script>
   <script type="module" src="./app/ont-iri-swapper.js"></script>
 
 </body>
