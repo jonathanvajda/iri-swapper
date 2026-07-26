@@ -1,13 +1,13 @@
 /* sparql-iri-swapper.js - SPARQL query IRI mapper (runs in parallel to your ontology tool; no edits to existing JS) */
 import { extractSparqlPrefixesFromText } from './shared/namespace-registry/sparql-prefixes.js';
 import { expandCurieToIri, compactIriToCurie, findLongestPrefixMatch } from './shared/namespace-registry/curie.js';
+import { downloadTextFile } from './shared/format-registry/browser-file-actions.js';
 
 const DB = {
   name: "myna-sparql-mapper-db",
   version: 1,
   storeRuns: "runs",
 };
-const FormatRegistry = window.FormatRegistry || {};
 
 const UI = {
   queryFile: document.getElementById("queryFile"),
@@ -918,17 +918,7 @@ async function downloadRunAsRq(runId) {
   const body = run.queryText || "";
   const name = ensureRqExtension(run.fileName || "query.rq");
 
-  if (FormatRegistry.downloadTextFile) {
-    FormatRegistry.downloadTextFile(name, body, { mimeType: "application/sparql-query" });
-  } else {
-    const blob = new Blob([body], { type: "application/sparql-query" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-  }
+  downloadTextFile(name, body, { mimeType: "application/sparql-query" });
   setStatus(`Downloaded: ${name}`);
 }
 

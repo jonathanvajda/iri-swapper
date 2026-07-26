@@ -9,13 +9,19 @@ import {
   createN3WriterOptionsWithPrefixes,
   applyPrefixesToRdflibStore
 } from './shared/namespace-registry/rdf-serialization-prefixes.js';
+import {
+  getFilenameExtension,
+  getPreferredExtensionForMimeType,
+  getSupportedMimeTypeForFilename
+} from './shared/format-registry/mime-registry.js';
+import { getN3ParserFormatForMimeType } from './shared/format-registry/rdf-parser-formats.js';
+import { downloadTextFile } from './shared/format-registry/browser-file-actions.js';
 
 const APP = {
   dbName: "myna-iri-mapper-db",
   dbVersion: 1,
   storeRuns: "runs",
 };
-const FormatRegistry = window.FormatRegistry || {};
 
 const UI = {
   ontologyFile: document.getElementById("ontologyFile"),
@@ -261,27 +267,19 @@ async function ingestOntology(file) {
 }
 
 function detectOntologyFormat(fileName) {
-  const detected = FormatRegistry.getSupportedMimeTypeForFilename
-    ? FormatRegistry.getSupportedMimeTypeForFilename(fileName)
-    : null;
+  const detected = getSupportedMimeTypeForFilename(fileName);
   if (detected && detected.ok && detected.value.category === "rdf") {
     return { contentType: detected.value.mimeType, label: detected.value.id.replace(/-/g, " ") };
   }
-  const ext = FormatRegistry.getFilenameExtension
-    ? FormatRegistry.getFilenameExtension(fileName)
-    : (String(fileName || "").split(".").pop() || "").toLowerCase();
+  const ext = getFilenameExtension(fileName);
   if (ext === "json") return { contentType: "application/ld+json", label: "JSON-LD" };
   return { contentType: "application/octet-stream", label: "Unknown (will attempt parsing)" };
 }
 
 async function parseOntologyToNQuads({ file, runId, baseIri }) {
   const text = await file.text();
-  const detected = FormatRegistry.getSupportedMimeTypeForFilename
-    ? FormatRegistry.getSupportedMimeTypeForFilename(file.name)
-    : null;
-  const ext = FormatRegistry.getFilenameExtension
-    ? FormatRegistry.getFilenameExtension(file.name)
-    : (file.name.split(".").pop() || "").toLowerCase();
+  const detected = getSupportedMimeTypeForFilename(file.name);
+  const ext = getFilenameExtension(file.name);
   const contentType = detected && detected.ok && detected.value.category === "rdf"
     ? detected.value.mimeType
     : "";
@@ -335,9 +333,7 @@ async function parseOntologyToNQuads({ file, runId, baseIri }) {
 }
 
 function parseWithN3(text, format, baseIri) {
-  const n3Format = FormatRegistry.getN3ParserFormatForMimeType
-    ? FormatRegistry.getN3ParserFormatForMimeType(format)
-    : null;
+  const n3Format = getN3ParserFormatForMimeType(format);
   const parser = new N3.Parser({ format: n3Format && n3Format.ok ? n3Format.value : format, baseIRI: baseIri });
   return parser.parse(text);
 }
@@ -697,24 +693,12 @@ async function downloadRun(runId, contentType) {
   const ext = contentTypeToExt(contentType);
   const outName = ensureExt(fileNameBase, ext);
 
-  if (FormatRegistry.downloadTextFile) {
-    FormatRegistry.downloadTextFile(outName, body, { mimeType: contentType });
-  } else {
-    const blob = new Blob([body], { type: contentType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = outName;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-  }
+  downloadTextFile(outName, body, { mimeType: contentType });
   setStatus(`Downloaded: ${outName}`);
 }
 
 function contentTypeToExt(ct) {
-  const preferred = FormatRegistry.getPreferredExtensionForMimeType
-    ? FormatRegistry.getPreferredExtensionForMimeType(ct)
-    : null;
+  const preferred = getPreferredExtensionForMimeType(ct);
   if (preferred && preferred.ok) return `.${preferred.value}`;
   return ".txt";
 }
