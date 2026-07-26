@@ -1,4 +1,6 @@
 /* sparql-iri-swapper.js - SPARQL query IRI mapper (runs in parallel to your ontology tool; no edits to existing JS) */
+import { extractSparqlPrefixesFromText } from './shared/namespace-registry/sparql-prefixes.js';
+import { expandCurieToIri, compactIriToCurie, findLongestPrefixMatch } from './shared/namespace-registry/curie.js';
 
 const DB = {
   name: "myna-sparql-mapper-db",
@@ -242,23 +244,8 @@ async function ingestQueryFile(file) {
 
 /* PREFIX/BASE parsing: robust enough for typical SPARQL headers */
 function parsePrefixesAndBase(queryText) {
-  const prefixes = {};
-  let baseIri = "";
-
-  const prefixRe = /^\s*PREFIX\s+([A-Za-z_][\w-]*)?:\s*<([^>]+)>\s*$/gmi;
-  const baseRe = /^\s*BASE\s+<([^>]+)>\s*$/gmi;
-
-  let m;
-  while ((m = prefixRe.exec(queryText))) {
-    const pfx = (m[1] || "").trim();
-    const ns = (m[2] || "").trim();
-    prefixes[pfx] = ns;
-  }
-
-  const b = baseRe.exec(queryText);
-  if (b && b[1]) baseIri = String(b[1]).trim();
-
-  return { prefixes, baseIri };
+  const extracted = extractSparqlPrefixesFromText(queryText);
+  return { prefixes: extracted.prefixes, baseIri: extracted.baseIri };
 }
 
 /**
@@ -316,13 +303,8 @@ function extractTokens(queryText, prefixes) {
 }
 
 function expandPrefixedName(token, prefixes) {
-  const idx = token.indexOf(":");
-  if (idx < 0) return "";
-  const pfx = token.slice(0, idx); // may be empty for :local
-  const local = token.slice(idx + 1);
-  const ns = prefixes[pfx];
-  if (!ns) return "";
-  return ns + local;
+  const expanded = expandCurieToIri(token, prefixes);
+  return expanded.ok ? expanded.value : "";
 }
 
 /* A small scanner: ignores #comments and quoted strings; extracts <...> and prefixed names */
@@ -775,7 +757,15 @@ function rewriteBody(text, originalPrefixes, updatedPrefixes, mapping, useNative
 function chooseQNameOrIri(newIri, prefixes, allowQName) {
   if (!allowQName) return `<${newIri}>`;
 
-  // Try to shorten with any prefix namespace that matches the start
+  const compacted = compactIriToCurie(newIri, prefixes);
+  if (compacted.ok && compacted.prefix) return compacted.value;
+
+  const match = findLongestPrefixMatch(newIri, prefixes);
+  if (match.ok && match.prefix) {
+    const local = newIri.slice(match.namespaceIri.length);
+    if (/^[A-Za-z0-9_\-\.]+$/.test(local)) return `${match.prefix}:${local}`;
+  }
+
   for (const [pfx, ns] of Object.entries(prefixes || {})) {
     if (!pfx) continue;
     if (newIri.startsWith(ns)) {

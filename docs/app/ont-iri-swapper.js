@@ -1,4 +1,14 @@
 /* ont-iri-swapper.js (ES module) - core logic stays out of the DOM; DOM only supplies options/events */
+import { normalizePrefixMap } from './shared/namespace-registry/prefix-map.js';
+import {
+  extractTurtlePrefixDeclarations,
+  extractXmlNamespacePrefixes,
+  extractJsonLdContextPrefixes
+} from './shared/namespace-registry/rdf-prefixes.js';
+import {
+  createN3WriterOptionsWithPrefixes,
+  applyPrefixesToRdflibStore
+} from './shared/namespace-registry/rdf-serialization-prefixes.js';
 
 const APP = {
   dbName: "myna-iri-mapper-db",
@@ -341,40 +351,17 @@ async function quadsToNQuads(quads) {
 }
 
 function parseTurtlePrefixes(text) {
-  const out = {};
-  const re1 = /@prefix\s+([A-Za-z][\w-]*)?:\s*<([^>]+)>\s*\./gi;
-  const re2 = /PREFIX\s+([A-Za-z][\w-]*)?:\s*<([^>]+)>/gi;
-  let m;
-  while ((m = re1.exec(text))) out[m[1] || ""] = m[2];
-  while ((m = re2.exec(text))) out[m[1] || ""] = m[2];
-  return out;
+  return normalizePrefixMap(extractTurtlePrefixDeclarations(text)).prefixes;
 }
 
 function parseXmlnsPrefixes(xmlText) {
-  try {
-    const doc = new DOMParser().parseFromString(xmlText, "application/xml");
-    const root = doc.documentElement;
-    const out = {};
-    for (const attr of root.attributes) {
-      if (attr.name === "xmlns") out[""] = attr.value;
-      if (attr.name.startsWith("xmlns:")) out[attr.name.slice("xmlns:".length)] = attr.value;
-    }
-    return out;
-  } catch {
-    return {};
-  }
+  return normalizePrefixMap(extractXmlNamespacePrefixes(xmlText)).prefixes;
 }
 
 function parseJsonLdPrefixes(text) {
-  const jsonObj = JSON.parse(text);
-  const out = {};
-  const ctx = jsonObj?.["@context"];
-  if (ctx && typeof ctx === "object" && !Array.isArray(ctx)) {
-    for (const [k, v] of Object.entries(ctx)) {
-      if (!k.startsWith("@") && typeof v === "string") out[k] = v;
-    }
-  }
-  return { jsonObj, contextPrefixes: out };
+  const extracted = extractJsonLdContextPrefixes(text);
+  if (!extracted.ok) throw new Error(`Invalid JSON-LD: ${extracted.message}`);
+  return { jsonObj: extracted.jsonObject, contextPrefixes: extracted.prefixes };
 }
 
 async function parseRdfXmlToNTriples(xmlText, baseIri) {
@@ -791,7 +778,8 @@ function prefixesToJsonLdContext(prefixes) {
 }
 
 async function writeWithN3(triples, format, prefixes) {
-  const writer = new N3.Writer({ format, prefixes });
+  const writerOptions = createN3WriterOptionsWithPrefixes({ format, prefixes: prefixes || {} });
+  const writer = new N3.Writer(writerOptions.value);
   writer.addQuads(triples);
   return new Promise((resolve, reject) => {
     writer.end((err, result) => (err ? reject(err) : resolve(result)));
@@ -802,13 +790,7 @@ async function serializeNTriplesToRdfXml(ntriples, baseIri, prefixes) {
   return new Promise((resolve, reject) => {
     try {
       const store = $rdf.graph();
-      // best effort prefix binding (rdflib.js provides setPrefixForURI on the store in many builds)
-      if (typeof store.setPrefixForURI === "function") {
-        for (const [pfx, ns] of Object.entries(prefixes || {})) {
-          if (!pfx) continue;
-          store.setPrefixForURI(pfx, ns);
-        }
-      }
+      applyPrefixesToRdflibStore(store, prefixes || {});
 
       $rdf.parse(ntriples, store, baseIri, "application/n-triples");
       $rdf.serialize(null, store, baseIri, "application/rdf+xml", (err, str) => {
