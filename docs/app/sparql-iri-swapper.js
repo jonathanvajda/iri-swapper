@@ -1,7 +1,7 @@
 /* sparql-iri-swapper.js - SPARQL query IRI mapper (runs in parallel to your ontology tool; no edits to existing JS) */
 import { extractSparqlPrefixesFromText } from './shared/namespace-registry/sparql-prefixes.js';
 import { expandCurieToIri, compactIriToCurie, findLongestPrefixMatch } from './shared/namespace-registry/curie.js';
-import { downloadTextFile } from './shared/format-registry/browser-file-actions.js';
+import { downloadTextFile } from './shared/browser-file-io/index.js';
 
 const DB = {
   name: "myna-sparql-mapper-db",

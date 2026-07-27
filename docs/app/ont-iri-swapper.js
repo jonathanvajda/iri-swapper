@@ -15,7 +15,7 @@ import {
   getSupportedMimeTypeForFilename
 } from './shared/format-registry/mime-registry.js';
 import { getN3ParserFormatForMimeType } from './shared/format-registry/rdf-parser-formats.js';
-import { downloadTextFile } from './shared/format-registry/browser-file-actions.js';
+import { downloadTextFile } from './shared/browser-file-io/index.js';
 
 const APP = {
   dbName: "myna-iri-mapper-db",
