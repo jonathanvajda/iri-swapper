@@ -16,6 +16,10 @@ import {
 } from './shared/format-registry/mime-registry.js';
 import { getN3ParserFormatForMimeType } from './shared/format-registry/rdf-parser-formats.js';
 import { downloadTextFile } from './shared/browser-file-io/index.js';
+import {
+  createIriMappingFromRows,
+  parseDelimitedText
+} from './shared/tabular-io/index.js';
 
 const APP = {
   dbName: "myna-iri-mapper-db",
@@ -421,16 +425,18 @@ async function ingestMapping(file) {
 
   if (ext === "csv" || ext === "tsv") {
     const text = await file.text();
-    const delim = ext === "tsv" ? "\t" : "";
-    const parsed = Papa.parse(text, {
+    const parsed = parseDelimitedText(text, {
       header: true,
+      hasHeader: true,
+      trimHeaders: true,
+      trimCells: true,
       skipEmptyLines: true,
-      delimiter: delim || undefined,
+      delimiter: ext === "tsv" ? "\t" : ",",
     });
-    if (parsed.errors?.length) {
-      throw new Error(`CSV parse error: ${parsed.errors[0]?.message || "unknown"}`);
+    if (parsed.warnings?.length) {
+      console.warn("Mapping parse warnings:", parsed.warnings);
     }
-    rows = parsed.data || [];
+    rows = parsed.records || [];
   } else if (ext === "xls" || ext === "xlsx") {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
@@ -440,17 +446,22 @@ async function ingestMapping(file) {
     throw new Error("Unsupported mapping format.");
   }
 
-  const { mapping, meta } = rowsToMapping(rows);
+  const { mapping, meta } = createIriMappingFromRows(rows);
+  const mappingMeta = {
+    rows: meta.rows,
+    uniqueOld: meta.uniqueOld,
+    dupOld: meta.duplicateOld
+  };
   Session.mapping = mapping;
-  Session.mappingMeta = meta;
+  Session.mappingMeta = mappingMeta;
 
-  UI.mappingRows.textContent = String(meta.rows);
-  UI.mappingUniqueOld.textContent = String(meta.uniqueOld);
-  UI.mappingDupOld.textContent = String(meta.dupOld);
+  UI.mappingRows.textContent = String(mappingMeta.rows);
+  UI.mappingUniqueOld.textContent = String(mappingMeta.uniqueOld);
+  UI.mappingDupOld.textContent = String(mappingMeta.dupOld);
 
-  UI.kpiMappingIris.textContent = String(meta.uniqueOld);
+  UI.kpiMappingIris.textContent = String(mappingMeta.uniqueOld);
 
-  setStatus(`Mapping ingested. Unique old IRIs: ${meta.uniqueOld}`);
+  setStatus(`Mapping ingested. Unique old IRIs: ${mappingMeta.uniqueOld}`);
 }
 
 function rowsToMapping(rows) {

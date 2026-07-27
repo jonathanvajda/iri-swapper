@@ -2,6 +2,10 @@
 import { extractSparqlPrefixesFromText } from './shared/namespace-registry/sparql-prefixes.js';
 import { expandCurieToIri, compactIriToCurie, findLongestPrefixMatch } from './shared/namespace-registry/curie.js';
 import { downloadTextFile } from './shared/browser-file-io/index.js';
+import {
+  createIriMappingFromRows,
+  parseDelimitedText
+} from './shared/tabular-io/index.js';
 
 const DB = {
   name: "myna-sparql-mapper-db",
@@ -405,13 +409,16 @@ async function ingestMappingFile(file) {
 
   if (ext === "csv" || ext === "tsv") {
     const text = await file.text();
-    const parsed = Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
+    const parsed = parseDelimitedText(text, {
+      hasHeader: true,
+      trimHeaders: true,
+      trimCells: true,
       delimiter: ext === "tsv" ? "\t" : undefined,
     });
-    if (parsed.errors?.length) throw new Error(parsed.errors[0]?.message || "CSV parse error");
-    rows = parsed.data || [];
+    if (parsed.warnings?.length) {
+      console.warn("Mapping parse warnings:", parsed.warnings);
+    }
+    rows = parsed.records || [];
   } else if (ext === "xls" || ext === "xlsx") {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
@@ -421,17 +428,22 @@ async function ingestMappingFile(file) {
     throw new Error("Unsupported mapping format.");
   }
 
-  const { mapping, meta } = rowsToMapping(rows);
+  const { mapping, meta } = createIriMappingFromRows(rows);
+  const mappingMeta = {
+    rows: meta.rows,
+    uniqueOld: meta.uniqueOld,
+    dupOld: meta.duplicateOld
+  };
   Session.mapping = mapping;
-  Session.mappingMeta = meta;
+  Session.mappingMeta = mappingMeta;
 
-  UI.mappingRows.textContent = String(meta.rows);
-  UI.mappingUniqueOld.textContent = String(meta.uniqueOld);
-  UI.mappingDupOld.textContent = String(meta.dupOld);
+  UI.mappingRows.textContent = String(mappingMeta.rows);
+  UI.mappingUniqueOld.textContent = String(mappingMeta.uniqueOld);
+  UI.mappingDupOld.textContent = String(mappingMeta.dupOld);
 
-  UI.kpiMapping.textContent = String(meta.uniqueOld);
+  UI.kpiMapping.textContent = String(mappingMeta.uniqueOld);
 
-  setStatus(`Mapping ingested. Unique old IRIs: ${meta.uniqueOld}`);
+  setStatus(`Mapping ingested. Unique old IRIs: ${mappingMeta.uniqueOld}`);
 }
 
 function rowsToMapping(rows) {
