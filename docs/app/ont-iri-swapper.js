@@ -20,6 +20,10 @@ import {
   createIriMappingFromRows,
   parseDelimitedText
 } from './shared/tabular-io/index.js';
+import {
+  parseRdfTextWithAdapters,
+  serializeRdfDatasetWithAdapters
+} from './shared/rdf-io/index.js';
 
 const APP = {
   dbName: "myna-iri-mapper-db",
@@ -294,41 +298,35 @@ async function parseOntologyToNQuads({ file, runId, baseIri }) {
 
   // Prefixes (best effort depending on format)
   let prefixes = {};
+  let parsed;
   let quads = [];
 
   if (contentType === "text/turtle" || contentType === "application/trig") {
     prefixes = parseTurtlePrefixes(text);
-    quads = parseWithN3(text, contentType, baseIri).map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else if (contentType === "application/n-triples") {
-    quads = parseWithN3(text, "application/n-triples", baseIri).map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else if (contentType === "application/n-quads") {
-    // If the source is already N-Quads, still re-home quads into this run graph for consistent storage
-    const src = parseWithN3(text, "application/n-quads", baseIri);
-    quads = src.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
   } else if (contentType === "application/ld+json" || ext === "json") {
-    const { jsonObj, contextPrefixes } = parseJsonLdPrefixes(text);
-    prefixes = contextPrefixes;
-    const nquads = await jsonld.toRDF(jsonObj, { format: "application/n-quads" });
-    const src = parseWithN3(nquads, "application/n-quads", baseIri);
-    quads = src.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
+    prefixes = parseJsonLdPrefixes(text).contextPrefixes;
   } else if (contentType === "application/rdf+xml") {
-    // Best-effort RDF/XML. If it is true OWL 2 XML Syntax, this will likely fail.
     prefixes = parseXmlnsPrefixes(text);
-    const nt = await parseRdfXmlToNTriples(text, baseIri);
-    const src = parseWithN3(nt, "application/n-triples", baseIri);
-    quads = src.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-  } else {
-    // Try Turtle first, then RDF/XML
-    try {
-      prefixes = parseTurtlePrefixes(text);
-      quads = parseWithN3(text, "text/turtle", baseIri).map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-    } catch {
-      prefixes = parseXmlnsPrefixes(text);
-      const nt = await parseRdfXmlToNTriples(text, baseIri);
-      const src = parseWithN3(nt, "application/n-triples", baseIri);
-      quads = src.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
-    }
   }
+
+  try {
+    parsed = await parseRdfTextWithAdapters(text, {
+      format: contentType || "text/turtle",
+      baseIri,
+      runtime: { N3, jsonld, $rdf }
+    });
+  } catch (error) {
+    if (contentType) throw error;
+    prefixes = parseXmlnsPrefixes(text);
+    parsed = await parseRdfTextWithAdapters(text, {
+      format: "application/rdf+xml",
+      baseIri,
+      runtime: { N3, jsonld, $rdf }
+    });
+  }
+
+  quads = parsed.quads.map(q => DF.quad(q.subject, q.predicate, q.object, graphNode));
+  prefixes = Object.keys(prefixes).length ? prefixes : (parsed.prefixes || {});
 
   const nquadsOut = await quadsToNQuads(quads);
   const stats = computeStatsFromQuads(quads);
@@ -343,11 +341,11 @@ function parseWithN3(text, format, baseIri) {
 }
 
 async function quadsToNQuads(quads) {
-  const writer = new N3.Writer({ format: "N-Quads" });
-  writer.addQuads(quads);
-  return new Promise((resolve, reject) => {
-    writer.end((err, result) => (err ? reject(err) : resolve(result)));
+  const serialized = await serializeRdfDatasetWithAdapters(quads, {
+    format: "application/n-quads",
+    runtime: { N3, jsonld, $rdf }
   });
+  return serialized.text;
 }
 
 function parseTurtlePrefixes(text) {
@@ -729,35 +727,34 @@ async function serializeRun(runId, contentType) {
   const useNativePrefixes = !!UI.useNativePrefixes.checked;
   const prefixes = (useNativePrefixes ? (run.prefixes || {}) : {});
 
-  const quads = parseWithN3(run.nquads, "application/n-quads", baseIri);
+  const parsed = await parseRdfTextWithAdapters(run.nquads, {
+    format: "application/n-quads",
+    baseIri,
+    runtime: { N3, jsonld, $rdf }
+  });
+  const quads = parsed.quads;
 
   // Convert quads -> triples (drop graph) for ontology-style export
   const triples = quads.map(q => N3.DataFactory.quad(q.subject, q.predicate, q.object));
 
   if (contentType === "text/turtle") {
-    return writeWithN3(triples, "Turtle", prefixes);
+    return (await serializeRdfDatasetWithAdapters(triples, { format: "text/turtle", prefixes, runtime: { N3, jsonld, $rdf } })).text;
   }
 
   if (contentType === "application/n-triples") {
-    return writeWithN3(triples, "N-Triples", {});
+    return (await serializeRdfDatasetWithAdapters(triples, { format: "application/n-triples", runtime: { N3, jsonld, $rdf } })).text;
   }
 
   if (contentType === "application/rdf+xml") {
-    const nt = await writeWithN3(triples, "N-Triples", {});
-    return serializeNTriplesToRdfXml(nt, baseIri, prefixes);
+    return (await serializeRdfDatasetWithAdapters(triples, { format: "application/rdf+xml", baseIri, prefixes, runtime: { N3, jsonld, $rdf } })).text;
   }
 
   if (contentType === "application/ld+json") {
-    const nquads = await quadsToNQuads(quads);
-    const doc = await jsonld.fromRDF(nquads, { format: "application/n-quads" });
-
-    if (useNativePrefixes && prefixes && Object.keys(prefixes).length) {
-      const ctx = prefixesToJsonLdContext(prefixes);
-      const compacted = await jsonld.compact(doc, ctx);
-      return JSON.stringify(compacted, null, 2);
-    }
-
-    return JSON.stringify(doc, null, 2);
+    return (await serializeRdfDatasetWithAdapters(quads, {
+      format: "application/ld+json",
+      runtime: { N3, jsonld, $rdf },
+      ...(useNativePrefixes && prefixes && Object.keys(prefixes).length ? { context: prefixesToJsonLdContext(prefixes) } : {})
+    })).text;
   }
 
   throw new Error(`Unsupported export contentType: ${contentType}`);
