@@ -1,4 +1,5 @@
 /* ont-iri-swapper.js (ES module) - core logic stays out of the DOM; DOM only supplies options/events */
+import { COMMON_NAMESPACE_IRIS } from './shared/namespace-registry/namespace-registry.js';
 import { normalizePrefixMap } from './shared/namespace-registry/prefix-map.js';
 import {
   extractTurtlePrefixDeclarations,
@@ -6,15 +7,10 @@ import {
   extractJsonLdContextPrefixes
 } from './shared/namespace-registry/rdf-prefixes.js';
 import {
-  createN3WriterOptionsWithPrefixes,
-  applyPrefixesToRdflibStore
-} from './shared/namespace-registry/rdf-serialization-prefixes.js';
-import {
   getFilenameExtension,
   getPreferredExtensionForMimeType,
   getSupportedMimeTypeForFilename
 } from './shared/format-registry/mime-registry.js';
-import { getN3ParserFormatForMimeType } from './shared/format-registry/rdf-parser-formats.js';
 import { downloadTextFile } from './shared/browser-file-io/index.js';
 import {
   createIriMappingFromRows,
@@ -24,6 +20,8 @@ import {
   parseRdfTextWithAdapters,
   serializeRdfDatasetWithAdapters
 } from './shared/rdf-io/index.js';
+
+const NS = COMMON_NAMESPACE_IRIS;
 
 const APP = {
   dbName: "myna-iri-mapper-db",
@@ -334,12 +332,6 @@ async function parseOntologyToNQuads({ file, runId, baseIri }) {
   return { nquads: nquadsOut, prefixes, stats };
 }
 
-function parseWithN3(text, format, baseIri) {
-  const n3Format = getN3ParserFormatForMimeType(format);
-  const parser = new N3.Parser({ format: n3Format && n3Format.ok ? n3Format.value : format, baseIRI: baseIri });
-  return parser.parse(text);
-}
-
 async function quadsToNQuads(quads) {
   const serialized = await serializeRdfDatasetWithAdapters(quads, {
     format: "application/n-quads",
@@ -362,26 +354,10 @@ function parseJsonLdPrefixes(text) {
   return { jsonObj: extracted.jsonObject, contextPrefixes: extracted.prefixes };
 }
 
-async function parseRdfXmlToNTriples(xmlText, baseIri) {
-  return new Promise((resolve, reject) => {
-    try {
-      const store = $rdf.graph();
-      $rdf.parse(xmlText, store, baseIri, "application/rdf+xml");
-      $rdf.serialize(null, store, baseIri, "application/n-triples", (err, str) => {
-        if (err) reject(err);
-        else resolve(str);
-      });
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
 function computeStatsFromQuads(quads) {
   const iris = new Set();
   let total = 0;
 
-  const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
   const labelMap = new Map();
 
   for (const q of quads) {
@@ -392,7 +368,7 @@ function computeStatsFromQuads(quads) {
     if (q.object.termType === "NamedNode") iris.add(q.object.value);
 
     // labels
-    if (q.predicate.termType === "NamedNode" && q.predicate.value === RDFS_LABEL) {
+    if (q.predicate.termType === "NamedNode" && q.predicate.value === NS.rdfs.label) {
       if (q.subject.termType === "NamedNode" && q.object.termType === "Literal") {
         const cur = labelMap.get(q.subject.value);
         // prefer @en if possible
@@ -529,7 +505,12 @@ async function buildPreviewFromRun(runId) {
   Session.ontologyPrefixes = run.prefixes || {};
   UI.prefixJson.textContent = JSON.stringify(Session.ontologyPrefixes, null, 2);
 
-  const quads = parseWithN3(run.nquads, "application/n-quads", UI.baseIri.value || "urn:myna:base:");
+  const parsed = await parseRdfTextWithAdapters(run.nquads, {
+    format: "application/n-quads",
+    baseIri: UI.baseIri.value || "urn:myna:base:",
+    runtime: { N3, jsonld, $rdf }
+  });
+  const quads = parsed.quads;
   const { rows, proposedChanges, uniqueIris } = buildRowsFromQuads(quads, Session.mapping);
 
   table.replaceData(rows);
@@ -543,7 +524,6 @@ async function buildPreviewFromRun(runId) {
 
 function buildRowsFromQuads(quads, mapping) {
   const iris = new Set();
-  const RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
   const labelMap = new Map();
 
   for (const q of quads) {
@@ -551,7 +531,7 @@ function buildRowsFromQuads(quads, mapping) {
     if (q.predicate.termType === "NamedNode") iris.add(q.predicate.value);
     if (q.object.termType === "NamedNode") iris.add(q.object.value);
 
-    if (q.predicate.termType === "NamedNode" && q.predicate.value === RDFS_LABEL) {
+    if (q.predicate.termType === "NamedNode" && q.predicate.value === NS.rdfs.label) {
       if (q.subject.termType === "NamedNode" && q.object.termType === "Literal") {
         const cur = labelMap.get(q.subject.value);
         const lang = q.object.language || "";
@@ -597,7 +577,12 @@ async function applyMappingToCurrentOntology() {
   const baseIri = UI.baseIri.value?.trim() || "urn:myna:base:";
   const useNativePrefixes = !!UI.useNativePrefixes.checked;
 
-  const inputQuads = parseWithN3(inputRun.nquads, "application/n-quads", baseIri);
+  const parsed = await parseRdfTextWithAdapters(inputRun.nquads, {
+    format: "application/n-quads",
+    baseIri,
+    runtime: { N3, jsonld, $rdf }
+  });
+  const inputQuads = parsed.quads;
   const { outputQuads, changeStats } = rewriteQuads(inputQuads, Session.mapping, outputRunId);
 
   const nquads = await quadsToNQuads(outputQuads);
@@ -767,32 +752,6 @@ function prefixesToJsonLdContext(prefixes) {
     ctx[k] = v;
   }
   return { "@context": ctx };
-}
-
-async function writeWithN3(triples, format, prefixes) {
-  const writerOptions = createN3WriterOptionsWithPrefixes({ format, prefixes: prefixes || {} });
-  const writer = new N3.Writer(writerOptions.value);
-  writer.addQuads(triples);
-  return new Promise((resolve, reject) => {
-    writer.end((err, result) => (err ? reject(err) : resolve(result)));
-  });
-}
-
-async function serializeNTriplesToRdfXml(ntriples, baseIri, prefixes) {
-  return new Promise((resolve, reject) => {
-    try {
-      const store = $rdf.graph();
-      applyPrefixesToRdflibStore(store, prefixes || {});
-
-      $rdf.parse(ntriples, store, baseIri, "application/n-triples");
-      $rdf.serialize(null, store, baseIri, "application/rdf+xml", (err, str) => {
-        if (err) reject(err);
-        else resolve(str);
-      });
-    } catch (e) {
-      reject(e);
-    }
-  });
 }
 
 /* -----------------------------
