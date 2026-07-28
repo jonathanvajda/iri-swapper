@@ -1,0 +1,28 @@
+{
+  "name": "iri-swapper",
+  "version": "1.0.0",
+  "description": "Finds and replaces IRIs in RDF files",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:coverage": "npm test -- --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathanvajda/iri-swapper.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/jonathanvajda/iri-swapper/issues"
+  },
+  "homepage": "https://github.com/jonathanvajda/iri-swapper#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
