@@ -20,14 +20,16 @@ import {
   parseRdfTextWithAdapters,
   serializeRdfDatasetWithAdapters
 } from './shared/rdf-io/index.js';
+import {
+  clearIriSwapperRuns,
+  createIriSwapperRunId,
+  deleteIriSwapperRun,
+  listIriSwapperRuns,
+  readIriSwapperRun,
+  storeIriSwapperRun
+} from './iri-swapper-run-store.js';
 
 const NS = COMMON_NAMESPACE_IRIS;
-
-const APP = {
-  dbName: "myna-iri-mapper-db",
-  dbVersion: 1,
-  storeRuns: "runs",
-};
 
 const UI = {
   ontologyFile: document.getElementById("ontologyFile"),
@@ -759,79 +761,27 @@ function prefixesToJsonLdContext(prefixes) {
 ------------------------------ */
 
 function makeRunId(kind, fileName, iso) {
-  const safe = fileName.replace(/[^\w.-]+/g, "_");
-  return `urn:myna:${kind}:${safe}:${iso}`;
-}
-
-async function openDb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(APP.dbName, APP.dbVersion);
-    req.onerror = () => reject(req.error);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(APP.storeRuns)) {
-        const store = db.createObjectStore(APP.storeRuns, { keyPath: "runId" });
-        store.createIndex("createdAt", "createdAt", { unique: false });
-        store.createIndex("kind", "kind", { unique: false });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-  });
+  return createIriSwapperRunId('', kind, fileName, iso);
 }
 
 async function putRun(run) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(APP.storeRuns, "readwrite");
-    const store = tx.objectStore(APP.storeRuns);
-    store.put(run);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  return storeIriSwapperRun(run, { runKind: 'rdf-iri-rewrite' });
 }
 
 async function getRun(runId) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(APP.storeRuns, "readonly");
-    const store = tx.objectStore(APP.storeRuns);
-    const req = store.get(runId);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
+  return readIriSwapperRun(runId);
 }
 
 async function listRuns() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(APP.storeRuns, "readonly");
-    const store = tx.objectStore(APP.storeRuns);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
+  return listIriSwapperRuns({ runKind: 'rdf-iri-rewrite' });
 }
 
 async function deleteRun(runId) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(APP.storeRuns, "readwrite");
-    const store = tx.objectStore(APP.storeRuns);
-    store.delete(runId);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  return deleteIriSwapperRun(runId);
 }
 
 async function clearAllRuns() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(APP.storeRuns, "readwrite");
-    const store = tx.objectStore(APP.storeRuns);
-    store.clear();
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  return clearIriSwapperRuns({ runKind: 'rdf-iri-rewrite' });
 }
 
 async function refreshRunsDropdown(selectRunId = null) {

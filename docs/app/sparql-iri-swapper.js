@@ -6,12 +6,14 @@ import {
   createIriMappingFromRows,
   parseDelimitedText
 } from './shared/tabular-io/index.js';
-
-const DB = {
-  name: "myna-sparql-mapper-db",
-  version: 1,
-  storeRuns: "runs",
-};
+import {
+  clearIriSwapperRuns,
+  createIriSwapperRunId,
+  deleteIriSwapperRun,
+  listIriSwapperRuns,
+  readIriSwapperRun,
+  storeIriSwapperRun
+} from './iri-swapper-run-store.js';
 
 const UI = {
   queryFile: document.getElementById("queryFile"),
@@ -809,74 +811,27 @@ function outputFileName(inputName) {
 /* -------------------- Runs: IndexedDB -------------------- */
 
 function makeRunId(kind, fileName, iso) {
-  const safe = fileName.replace(/[^\w.-]+/g, "_");
-  return `urn:myna:sparql:${kind}:${safe}:${iso}`;
-}
-
-async function openDb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB.name, DB.version);
-    req.onerror = () => reject(req.error);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(DB.storeRuns)) {
-        const store = db.createObjectStore(DB.storeRuns, { keyPath: "runId" });
-        store.createIndex("createdAt", "createdAt", { unique: false });
-        store.createIndex("kind", "kind", { unique: false });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-  });
+  return createIriSwapperRunId('sparql', kind, fileName, iso);
 }
 
 async function putRun(run) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB.storeRuns, "readwrite");
-    tx.objectStore(DB.storeRuns).put(run);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  return storeIriSwapperRun(run, { runKind: 'sparql-iri-rewrite' });
 }
 
 async function getRun(runId) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB.storeRuns, "readonly");
-    const req = tx.objectStore(DB.storeRuns).get(runId);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
+  return readIriSwapperRun(runId);
 }
 
 async function listRuns() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB.storeRuns, "readonly");
-    const req = tx.objectStore(DB.storeRuns).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
+  return listIriSwapperRuns({ runKind: 'sparql-iri-rewrite' });
 }
 
 async function deleteRun(runId) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB.storeRuns, "readwrite");
-    tx.objectStore(DB.storeRuns).delete(runId);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  return deleteIriSwapperRun(runId);
 }
 
 async function clearAllRuns() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB.storeRuns, "readwrite");
-    tx.objectStore(DB.storeRuns).clear();
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  return clearIriSwapperRuns({ runKind: 'sparql-iri-rewrite' });
 }
 
 async function refreshRunsDropdown(selectRunId = null) {

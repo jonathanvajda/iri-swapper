@@ -9,6 +9,12 @@ import {
   iriForNamespaceId,
   namespacePrefixMapFromRegistry
 } from '../docs/app/shared/namespace-registry/namespace-registry.js';
+import { createIriSwapperRunId } from '../docs/app/iri-swapper-run-store.js';
+import {
+  DEFAULT_PROJECT_PORTFOLIO_PROJECT_ID,
+  createMemoryRecordAdapter,
+  createRunRecordStore
+} from '../docs/app/shared/indexeddb-data-management/index.js';
 
 describe('IRI mapping rows', () => {
   test('creates a normalized old-to-new IRI map from common headers', () => {
@@ -114,5 +120,38 @@ describe('namespace registry', () => {
       error: 'unknown namespace id',
       input: 'notReal'
     });
+  });
+});
+
+describe('project portfolio run storage', () => {
+  test('creates IRI Swapper RDF and SPARQL run ids with existing conventions', () => {
+    expect(createIriSwapperRunId('', 'input', 'source ontology.ttl', '2026-08-02T12:00:00.000Z'))
+      .toBe('urn:myna:input:source_ontology.ttl:2026-08-02T12:00:00.000Z');
+    expect(createIriSwapperRunId('sparql', 'output', 'query file.rq', '2026-08-02T12:00:00.000Z'))
+      .toBe('urn:myna:sparql:output:query_file.rq:2026-08-02T12:00:00.000Z');
+  });
+
+  test('stores migrated IRI Swapper run payloads as shared project run records', async () => {
+    const runs = createRunRecordStore(createMemoryRecordAdapter());
+    await runs.storeRunRecord({
+      runId: 'urn:myna:input:source.ttl:2026-08-02T12:00:00.000Z',
+      projectId: DEFAULT_PROJECT_PORTFOLIO_PROJECT_ID,
+      runKind: 'rdf-iri-rewrite',
+      label: 'source.ttl',
+      createdAt: '2026-08-02T12:00:00.000Z',
+      payload: {
+        runId: 'urn:myna:input:source.ttl:2026-08-02T12:00:00.000Z',
+        kind: 'input',
+        fileName: 'source.ttl',
+        nquads: '<s> <p> <o> .'
+      }
+    });
+
+    const [record] = await runs.listRunRecords({
+      projectId: DEFAULT_PROJECT_PORTFOLIO_PROJECT_ID,
+      runKind: 'rdf-iri-rewrite'
+    });
+    expect(record.payload.fileName).toBe('source.ttl');
+    expect(record.payload.kind).toBe('input');
   });
 });
