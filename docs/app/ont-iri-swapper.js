@@ -29,7 +29,6 @@ import {
   storeIriSwapperRun
 } from './iri-swapper-run-store.js';
 
-const NS = COMMON_NAMESPACE_IRIS;
 
 const UI = {
   ontologyFile: document.getElementById("ontologyFile"),
@@ -370,7 +369,7 @@ function computeStatsFromQuads(quads) {
     if (q.object.termType === "NamedNode") iris.add(q.object.value);
 
     // labels
-    if (q.predicate.termType === "NamedNode" && q.predicate.value === NS.rdfs.label) {
+    if (q.predicate.termType === "NamedNode" && q.predicate.value === COMMON_NAMESPACE_IRIS.rdfs.label) {
       if (q.subject.termType === "NamedNode" && q.object.termType === "Literal") {
         const cur = labelMap.get(q.subject.value);
         // prefer @en if possible
@@ -533,7 +532,7 @@ function buildRowsFromQuads(quads, mapping) {
     if (q.predicate.termType === "NamedNode") iris.add(q.predicate.value);
     if (q.object.termType === "NamedNode") iris.add(q.object.value);
 
-    if (q.predicate.termType === "NamedNode" && q.predicate.value === NS.rdfs.label) {
+    if (q.predicate.termType === "NamedNode" && q.predicate.value === COMMON_NAMESPACE_IRIS.rdfs.label) {
       if (q.subject.termType === "NamedNode" && q.object.termType === "Literal") {
         const cur = labelMap.get(q.subject.value);
         const lang = q.object.language || "";
