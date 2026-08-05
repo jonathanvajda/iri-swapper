@@ -1,0 +1,22 @@
+# q_annotationproperty-missing-rdfs-label
+# SPARQL query to find annotation properties missing rdfs:label in English
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX cco: <https://www.commoncoreontologies.org/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+BASE <https://purl.obolibrarysecure.org/>
+
+SELECT ?resource
+WHERE {
+  ?resource a owl:AnnotationProperty .
+  FILTER NOT EXISTS { ?resource owl:deprecated true . }
+  FILTER NOT EXISTS {
+    ?resource rdfs:label ?label .
+    FILTER (lang(?label) = "en")
+  }
+FILTER(isIRI(?resource))
+}

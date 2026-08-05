@@ -8,7 +8,6 @@ import {
 } from './shared/namespace-registry/rdf-prefixes.js';
 import {
   getFilenameExtension,
-  getPreferredExtensionForMimeType,
   getSupportedMimeTypeForFilename
 } from './shared/format-registry/mime-registry.js';
 import { downloadTextFile } from './shared/browser-file-io/index.js';
@@ -20,6 +19,11 @@ import {
   parseRdfTextWithAdapters,
   serializeRdfDatasetWithAdapters
 } from './shared/rdf-io/index.js';
+import {
+  downloadRunOutputForExport,
+  resolveOutputRunForExport,
+  serializeRunOutputForExport
+} from './shared/indexeddb-data-management/index.js';
 import {
   clearIriSwapperRuns,
   createIriSwapperRunId,
@@ -115,9 +119,15 @@ function wireButtons() {
   });
 
   UI.downloadBtn.addEventListener("click", async () => {
-    const runId = Session.currentOutputRunId || Session.currentOntologyRunId;
-    if (!runId) return setStatus("Load or create an output run first.", true);
+    const runId = await resolveActiveOutputRunId();
+    if (!runId) return setStatus("Apply mappings to create an output run before downloading.", true);
     await downloadRun(runId, UI.exportFormat.value);
+  });
+
+  UI.exportFormat.addEventListener("change", async () => {
+    const runId = await resolveActiveOutputRunId();
+    if (!runId) return;
+    await renderOutputPreview(runId, UI.exportFormat.value);
   });
 
   UI.loadRunBtn.addEventListener("click", async () => {
@@ -500,8 +510,12 @@ async function buildPreviewFromRun(runId) {
   if (!run) return setStatus("Run not found in IndexedDB.", true);
   if (!table) initTable();
 
-  Session.currentOntologyRunId = run.kind === "input" ? runId : (run.parentRunId || runId);
-  Session.currentOutputRunId = run.kind === "output" ? runId : null;
+  if (run.kind === "input") {
+    Session.currentOntologyRunId = runId;
+  } else {
+    Session.currentOntologyRunId = run.parentRunId || runId;
+    Session.currentOutputRunId = runId;
+  }
 
   Session.ontologyPrefixes = run.prefixes || {};
   UI.prefixJson.textContent = JSON.stringify(Session.ontologyPrefixes, null, 2);
@@ -670,10 +684,17 @@ function outputFileName(inputName) {
    Export / Preview
 ------------------------------ */
 
-async function renderOutputPreview(runId) {
+async function renderOutputPreview(runId, contentType = UI.exportFormat.value || "text/turtle") {
   try {
-    const ttl = await serializeRun(runId, "text/turtle");
-    UI.outputPreview.value = ttl;
+    const run = await getRun(runId);
+    if (!run) throw new Error("Run not found.");
+    const output = await serializeRunOutputForExport(run, {
+      mimeType: contentType,
+      baseIri: UI.baseIri.value?.trim() || "urn:myna:base:",
+      usePrefixes: !!UI.useNativePrefixes.checked,
+      runtime: { N3, jsonld, $rdf }
+    });
+    UI.outputPreview.value = output.text;
   } catch (e) {
     UI.outputPreview.value = "";
     setStatus(`Preview error: ${e?.message || e}`, true);
@@ -681,78 +702,31 @@ async function renderOutputPreview(runId) {
 }
 
 async function downloadRun(runId, contentType) {
-  const body = await serializeRun(runId, contentType);
   const run = await getRun(runId);
-  const fileNameBase = (run?.fileName || "ontology.mapped");
-
-  const ext = contentTypeToExt(contentType);
-  const outName = ensureExt(fileNameBase, ext);
-
-  downloadTextFile(outName, body, { mimeType: contentType });
-  setStatus(`Downloaded: ${outName}`);
-}
-
-function contentTypeToExt(ct) {
-  const preferred = getPreferredExtensionForMimeType(ct);
-  if (preferred && preferred.ok) return `.${preferred.value}`;
-  return ".txt";
-}
-
-function ensureExt(name, ext) {
-  const lower = name.toLowerCase();
-  if (lower.endsWith(ext)) return name;
-  // strip common rdf extensions then add
-  return name.replace(/\.(ttl|nt|nq|trig|rdf|owl|xml|jsonld|json)$/i, "") + ext;
-}
-
-async function serializeRun(runId, contentType) {
-  const run = await getRun(runId);
-  if (!run) throw new Error("Run not found.");
-
-  const baseIri = UI.baseIri.value?.trim() || "urn:myna:base:";
-  const useNativePrefixes = !!UI.useNativePrefixes.checked;
-  const prefixes = (useNativePrefixes ? (run.prefixes || {}) : {});
-
-  const parsed = await parseRdfTextWithAdapters(run.nquads, {
-    format: "application/n-quads",
-    baseIri,
-    runtime: { N3, jsonld, $rdf }
+  if (!run) return setStatus("Run not found.", true);
+  const result = await downloadRunOutputForExport(run, {
+    mimeType: contentType,
+    baseIri: UI.baseIri.value?.trim() || "urn:myna:base:",
+    usePrefixes: !!UI.useNativePrefixes.checked,
+    runtime: { N3, jsonld, $rdf },
+    downloadTextFile
   });
-  const quads = parsed.quads;
-
-  // Convert quads -> triples (drop graph) for ontology-style export
-  const triples = quads.map(q => N3.DataFactory.quad(q.subject, q.predicate, q.object));
-
-  if (contentType === "text/turtle") {
-    return (await serializeRdfDatasetWithAdapters(triples, { format: "text/turtle", prefixes, runtime: { N3, jsonld, $rdf } })).text;
-  }
-
-  if (contentType === "application/n-triples") {
-    return (await serializeRdfDatasetWithAdapters(triples, { format: "application/n-triples", runtime: { N3, jsonld, $rdf } })).text;
-  }
-
-  if (contentType === "application/rdf+xml") {
-    return (await serializeRdfDatasetWithAdapters(triples, { format: "application/rdf+xml", baseIri, prefixes, runtime: { N3, jsonld, $rdf } })).text;
-  }
-
-  if (contentType === "application/ld+json") {
-    return (await serializeRdfDatasetWithAdapters(quads, {
-      format: "application/ld+json",
-      runtime: { N3, jsonld, $rdf },
-      ...(useNativePrefixes && prefixes && Object.keys(prefixes).length ? { context: prefixesToJsonLdContext(prefixes) } : {})
-    })).text;
-  }
-
-  throw new Error(`Unsupported export contentType: ${contentType}`);
+  setStatus(`Downloaded: ${result.serialized.fileName}`);
 }
 
-function prefixesToJsonLdContext(prefixes) {
-  const ctx = {};
-  for (const [k, v] of Object.entries(prefixes)) {
-    if (k === "") continue; // default prefix isn't valid as a JSON-LD term key
-    ctx[k] = v;
-  }
-  return { "@context": ctx };
+async function resolveActiveOutputRunId() {
+  const resolved = await resolveOutputRunForExport({
+    activeOutputRunId: Session.currentOutputRunId,
+    selectedRunId: UI.runsSelect.value,
+    inputRunId: Session.currentOntologyRunId,
+    readRun: getRun,
+    listRuns
+  });
+  if (!resolved) return null;
+  Session.currentOutputRunId = resolved.runId;
+  Session.currentOntologyRunId = resolved.parentRunId || Session.currentOntologyRunId;
+  UI.runsSelect.value = resolved.runId;
+  return resolved.runId;
 }
 
 /* -----------------------------

@@ -11,9 +11,22 @@ import {
 } from '../docs/app/shared/namespace-registry/namespace-registry.js';
 import { createIriSwapperRunId } from '../docs/app/iri-swapper-run-store.js';
 import {
+  buildSparqlIriPreviewRows,
+  countSparqlAppliedChanges,
+  extractSparqlIriTokens,
+  parsePrefixesAndBase,
+  rewriteSparqlQuery
+} from '../docs/app/sparql-iri-swapper-core.js';
+import {
+  RDF_GRAPH_EXPORT_MIME_TYPES,
+  getRdfGraphExportGraphShape,
+  isSupportedRdfGraphExportMimeType
+} from '../docs/app/shared/rdf-io/index.js';
+import {
   DEFAULT_PROJECT_PORTFOLIO_PROJECT_ID,
   createMemoryRecordAdapter,
-  createRunRecordStore
+  createRunRecordStore,
+  downloadRunOutputForExport
 } from '../docs/app/shared/indexeddb-data-management/index.js';
 
 describe('IRI mapping rows', () => {
@@ -97,6 +110,37 @@ describe('format registry', () => {
   });
 });
 
+describe('promoted RDF export options', () => {
+  test('covers every RDF export format offered by the page', () => {
+    expect(RDF_GRAPH_EXPORT_MIME_TYPES).toEqual([
+      'text/turtle',
+      'application/n-triples',
+      'application/n-quads',
+      'application/trig',
+      'application/rdf+xml',
+      'application/ld+json'
+    ]);
+    for (const mimeType of RDF_GRAPH_EXPORT_MIME_TYPES) {
+      expect(isSupportedRdfGraphExportMimeType(mimeType)).toBe(true);
+      expect(getPreferredExtensionForMimeType(mimeType).ok).toBe(true);
+    }
+  });
+
+  test('distinguishes ontology-style triple exports from graph-preserving exports', () => {
+    expect(getRdfGraphExportGraphShape('text/turtle')).toBe('triples');
+    expect(getRdfGraphExportGraphShape('application/n-triples')).toBe('triples');
+    expect(getRdfGraphExportGraphShape('application/rdf+xml')).toBe('triples');
+    expect(getRdfGraphExportGraphShape('application/n-quads')).toBe('quads');
+    expect(getRdfGraphExportGraphShape('application/trig')).toBe('quads');
+    expect(getRdfGraphExportGraphShape('application/ld+json')).toBe('quads');
+  });
+
+  test('rejects unsupported RDF export MIME types explicitly', () => {
+    expect(isSupportedRdfGraphExportMimeType('text/plain')).toBe(false);
+    expect(() => getRdfGraphExportGraphShape('text/plain')).toThrow('Unsupported RDF graph export MIME type');
+  });
+});
+
 describe('namespace registry', () => {
   test('provides common ontology IRIs and prefix maps without local constants', () => {
     expect(COMMON_NAMESPACE_IRIS.rdf.type).toBe('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
@@ -119,6 +163,71 @@ describe('namespace registry', () => {
       ok: false,
       error: 'unknown namespace id',
       input: 'notReal'
+    });
+  });
+});
+
+describe('SPARQL IRI rewrite pipeline', () => {
+  test('uses the same expanded IRI mapping for preview, apply, and download output', async () => {
+    const queryText = [
+      'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>',
+      'PREFIX owl: <http://www.w3.org/2002/07/owl#>',
+      '',
+      'SELECT ?s ?label WHERE {',
+      '  ?s a owl:AnnotationProperty ;',
+      '     rdfs:label ?label .',
+      '}',
+      ''
+    ].join('\n');
+    const mapping = new Map([
+      ['http://www.w3.org/2000/01/rdf-schema#label', 'http://www.w3.org/2000/01/rdf-schema#name']
+    ]);
+    const { prefixes } = parsePrefixesAndBase(queryText);
+    const tokens = extractSparqlIriTokens(queryText, prefixes);
+    const inputRun = {
+      runId: 'run:sparql-input',
+      kind: 'input',
+      fileName: 'query.rq',
+      queryText,
+      prefixes,
+      tokens
+    };
+
+    const preview = buildSparqlIriPreviewRows(inputRun, mapping);
+    expect(preview.rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        token: 'rdfs:label',
+        expanded: 'http://www.w3.org/2000/01/rdf-schema#label',
+        toBe: 'http://www.w3.org/2000/01/rdf-schema#name',
+        status: 'Change'
+      })
+    ]));
+
+    const outputText = rewriteSparqlQuery(queryText, prefixes, mapping, true);
+    expect(outputText).toContain('rdfs:name ?label');
+    expect(outputText).not.toContain('rdfs:label ?label');
+    expect(countSparqlAppliedChanges(inputRun, outputText, mapping, { useNativePrefixes: true })).toBe(1);
+
+    const downloads = [];
+    const result = await downloadRunOutputForExport({
+      runId: 'run:sparql-output',
+      kind: 'output',
+      fileName: 'query.mapped.rq',
+      queryText: outputText
+    }, {
+      mimeType: 'application/sparql-query',
+      textProperty: 'queryText',
+      downloadTextFile(fileName, text, options) {
+        downloads.push({ fileName, text, options });
+        return { fileName };
+      }
+    });
+
+    expect(result.serialized.text).toContain('rdfs:name ?label');
+    expect(downloads[0]).toMatchObject({
+      fileName: 'query.mapped.rq',
+      text: expect.stringContaining('rdfs:name ?label'),
+      options: { mimeType: 'application/sparql-query' }
     });
   });
 });
