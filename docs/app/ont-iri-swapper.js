@@ -19,6 +19,7 @@ import {
   parseRdfTextWithAdapters,
   serializeRdfDatasetWithAdapters
 } from './shared/rdf-io/index.js';
+import { classifyOntologyInput } from './shared/ontology-utils/index.js';
 import {
   downloadRunOutputForExport,
   resolveOutputRunForExport,
@@ -284,8 +285,9 @@ async function ingestOntology(file) {
 }
 
 function detectOntologyFormat(fileName) {
+  const classification = classifyOntologyInput({ filename: fileName });
   const detected = getSupportedMimeTypeForFilename(fileName);
-  if (detected && detected.ok && detected.value.category === "rdf") {
+  if (classification.isOntologyCandidate && detected && detected.ok && detected.value.category === "rdf") {
     return { contentType: detected.value.mimeType, label: detected.value.id.replace(/-/g, " ") };
   }
   const ext = getFilenameExtension(fileName);
