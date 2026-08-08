@@ -9,7 +9,11 @@ import {
   iriForNamespaceId,
   namespacePrefixMapFromRegistry
 } from '../docs/app/shared/namespace-registry/namespace-registry.js';
-import { createIriSwapperRunId } from '../docs/app/iri-swapper-run-store.js';
+import {
+  convertIriSwapperRunToJsonLd,
+  createIriSwapperRunId,
+  readIriSwapperRunFromJsonLd
+} from '../docs/app/iri-swapper-run-store.js';
 import {
   buildSparqlIriPreviewRows,
   countSparqlAppliedChanges,
@@ -240,27 +244,38 @@ describe('project portfolio run storage', () => {
       .toBe('urn:myna:sparql:output:query_file.rq:2026-08-02T12:00:00.000Z');
   });
 
-  test('stores migrated IRI Swapper run payloads as shared project run records', async () => {
-    const runs = createRunRecordStore(createMemoryRecordAdapter());
+  test('stores migrated IRI Swapper run payloads as registry-backed JSON-LD records', async () => {
+    const adapter = createMemoryRecordAdapter();
+    const runs = createRunRecordStore(adapter);
+    const payload = convertIriSwapperRunToJsonLd({
+      runId: 'urn:myna:input:source.ttl:2026-08-02T12:00:00.000Z',
+      kind: 'input',
+      fileName: 'source.ttl',
+      createdAt: '2026-08-02T12:00:00.000Z',
+      sourceFormat: 'text/turtle',
+      nquads: '<s> <p> <o> .'
+    }, { runKind: 'rdf-iri-rewrite' });
+
     await runs.storeRunRecord({
       runId: 'urn:myna:input:source.ttl:2026-08-02T12:00:00.000Z',
       projectId: DEFAULT_PROJECT_PORTFOLIO_PROJECT_ID,
       runKind: 'rdf-iri-rewrite',
       label: 'source.ttl',
       createdAt: '2026-08-02T12:00:00.000Z',
-      payload: {
-        runId: 'urn:myna:input:source.ttl:2026-08-02T12:00:00.000Z',
-        kind: 'input',
-        fileName: 'source.ttl',
-        nquads: '<s> <p> <o> .'
-      }
+      payload
     });
+
+    const [rawRecord] = [...adapter.snapshot().values()];
+    expect(rawRecord.payload['@context']).toBeTruthy();
+    expect(rawRecord.payload[COMMON_NAMESPACE_IRIS.okea.fileName]['@value']).toBe('source.ttl');
+    expect(rawRecord.payload[COMMON_NAMESPACE_IRIS.rdf.value].nquads).toBe('<s> <p> <o> .');
 
     const [record] = await runs.listRunRecords({
       projectId: DEFAULT_PROJECT_PORTFOLIO_PROJECT_ID,
       runKind: 'rdf-iri-rewrite'
     });
-    expect(record.payload.fileName).toBe('source.ttl');
-    expect(record.payload.kind).toBe('input');
+    const roundTrip = readIriSwapperRunFromJsonLd(record.payload);
+    expect(roundTrip.fileName).toBe('source.ttl');
+    expect(roundTrip.kind).toBe('input');
   });
 });
