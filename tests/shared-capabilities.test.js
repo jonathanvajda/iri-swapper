@@ -15,12 +15,12 @@ import {
   readIriSwapperRunFromJsonLd
 } from '../docs/app/iri-swapper-run-store.js';
 import {
-  buildSparqlIriPreviewRows,
-  countSparqlAppliedChanges,
-  extractSparqlIriTokens,
-  parsePrefixesAndBase,
-  rewriteSparqlQuery
-} from '../docs/app/sparql-iri-swapper-core.js';
+  buildSparqlRewritePreviewRows,
+  countAppliedSparqlIriRewrites,
+  extractSparqlPrologueDeclarations,
+  extractSparqlRewriteTokens,
+  rewriteSparqlIris
+} from '../docs/app/shared/sparql-utils/index.js';
 import {
   RDF_GRAPH_EXPORT_MIME_TYPES,
   getRdfGraphExportGraphShape,
@@ -186,8 +186,8 @@ describe('SPARQL IRI rewrite pipeline', () => {
     const mapping = new Map([
       ['http://www.w3.org/2000/01/rdf-schema#label', 'http://www.w3.org/2000/01/rdf-schema#name']
     ]);
-    const { prefixes } = parsePrefixesAndBase(queryText);
-    const tokens = extractSparqlIriTokens(queryText, prefixes);
+    const { prefixes } = extractSparqlPrologueDeclarations(queryText);
+    const tokens = extractSparqlRewriteTokens(queryText, prefixes).tokens;
     const inputRun = {
       runId: 'run:sparql-input',
       kind: 'input',
@@ -197,20 +197,21 @@ describe('SPARQL IRI rewrite pipeline', () => {
       tokens
     };
 
-    const preview = buildSparqlIriPreviewRows(inputRun, mapping);
+    const preview = buildSparqlRewritePreviewRows(inputRun, mapping);
     expect(preview.rows).toEqual(expect.arrayContaining([
       expect.objectContaining({
         token: 'rdfs:label',
-        expanded: 'http://www.w3.org/2000/01/rdf-schema#label',
-        toBe: 'http://www.w3.org/2000/01/rdf-schema#name',
+        expandedIri: 'http://www.w3.org/2000/01/rdf-schema#label',
+        targetIri: 'http://www.w3.org/2000/01/rdf-schema#name',
         status: 'Change'
       })
     ]));
 
-    const outputText = rewriteSparqlQuery(queryText, prefixes, mapping, true);
+    const rewriteResult = rewriteSparqlIris(queryText, prefixes, mapping, { useNativePrefixes: true });
+    const outputText = rewriteResult.value;
     expect(outputText).toContain('rdfs:name ?label');
     expect(outputText).not.toContain('rdfs:label ?label');
-    expect(countSparqlAppliedChanges(inputRun, outputText, mapping, { useNativePrefixes: true })).toBe(1);
+    expect(countAppliedSparqlIriRewrites(rewriteResult)).toBe(1);
 
     const downloads = [];
     const result = await downloadRunOutputForExport({

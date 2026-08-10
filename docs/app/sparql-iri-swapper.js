@@ -17,12 +17,12 @@ import {
   storeIriSwapperRun
 } from './iri-swapper-run-store.js';
 import {
-  buildSparqlIriPreviewRows,
-  countSparqlAppliedChanges,
-  extractSparqlIriTokens,
-  parsePrefixesAndBase,
-  rewriteSparqlQuery
-} from './sparql-iri-swapper-core.js';
+  buildSparqlRewritePreviewRows,
+  countAppliedSparqlIriRewrites,
+  extractSparqlPrologueDeclarations,
+  extractSparqlRewriteTokens,
+  rewriteSparqlIris
+} from './shared/sparql-utils/index.js';
 
 const UI = {
   queryFile: document.getElementById("queryFile"),
@@ -187,8 +187,8 @@ function initTable() {
     columns: [
       { title: "Token", field: "token", formatter: "textarea", headerFilter: "input", widthGrow: 3 },
       { title: "Kind", field: "kind", headerFilter: "select", headerFilterParams: { values: { "": "All", "IRIRef": "IRIRef", "PrefixedName": "PrefixedName" } }, width: 150 },
-      { title: "Expanded IRI", field: "expanded", formatter: "textarea", headerFilter: "input", widthGrow: 4 },
-      { title: "To-be IRI", field: "toBe", formatter: "textarea", headerFilter: "input", widthGrow: 4 },
+      { title: "Expanded IRI", field: "expandedIri", formatter: "textarea", headerFilter: "input", widthGrow: 4 },
+      { title: "To-be IRI", field: "targetIri", formatter: "textarea", headerFilter: "input", widthGrow: 4 },
       {
         title: "Status",
         field: "status",
@@ -221,8 +221,10 @@ async function ingestQueryFile(file) {
   const createdAt = new Date().toISOString();
   const runId = makeRunId("input", file.name, createdAt);
 
-  const { prefixes, baseIri } = parsePrefixesAndBase(queryText);
-  const tokens = extractSparqlIriTokens(queryText, prefixes);
+  const prologue = extractSparqlPrologueDeclarations(queryText);
+  const { prefixes, baseIri } = prologue;
+  const tokenResult = extractSparqlRewriteTokens(queryText, prefixes);
+  const tokens = tokenResult.tokens;
 
   const stats = {
     uniqueTokens: tokens.length,
@@ -359,12 +361,12 @@ async function buildPreviewFromRun(runId) {
   UI.baseIri.textContent = run.baseIri || "â€”";
   UI.prefixJson.textContent = JSON.stringify(run.prefixes || {}, null, 2);
 
-  const preview = buildSparqlIriPreviewRows(run, Session.mapping);
+  const preview = buildSparqlRewritePreviewRows(run, Session.mapping);
 
   table.replaceData(preview.rows);
-  UI.kpiTokens.textContent = String(preview.total);
-  UI.kpiProposed.textContent = String(preview.proposed);
-  UI.kpiPct.textContent = preview.total ? `${Math.round((preview.proposed / preview.total) * 100)}%` : "0%";
+  UI.kpiTokens.textContent = String(preview.totalTokenCount);
+  UI.kpiProposed.textContent = String(preview.proposedChangeCount);
+  UI.kpiPct.textContent = preview.totalTokenCount ? `${Math.round((preview.proposedChangeCount / preview.totalTokenCount) * 100)}%` : "0%";
 
   setStatus(`Preview built for run: ${runId}`);
 
@@ -390,12 +392,14 @@ async function applyMappingToCurrentRun() {
   // 1) Update PREFIX/BASE IRIs if mapping hits them exactly
   // 2) Replace <oldIri> with <newIri> everywhere outside strings/comments
   // 3) If a prefixed name expands to an oldIri that is directly mapped, replace token with <newIri> (or prefixed if possible)
-  const out = rewriteSparqlQuery(inputRun.queryText, inputRun.prefixes || {}, Session.mapping, useNativePrefixes);
+  const rewriteResult = rewriteSparqlIris(inputRun.queryText, inputRun.prefixes || {}, Session.mapping, { useNativePrefixes });
+  const out = rewriteResult.value;
 
-  const { prefixes: outPrefixes, baseIri: outBaseIri } = parsePrefixesAndBase(out);
+  const { prefixes: outPrefixes, baseIri: outBaseIri } = extractSparqlPrologueDeclarations(out);
 
-  const outTokens = extractSparqlIriTokens(out, outPrefixes);
-  const preview = buildSparqlIriPreviewRows({ tokens: outTokens, prefixes: outPrefixes }, new Map()); // no next changes on output
+  const outTokens = extractSparqlRewriteTokens(out, outPrefixes).tokens;
+  const preview = buildSparqlRewritePreviewRows({ tokens: outTokens, prefixes: outPrefixes }, new Map()); // no next changes on output
+  const appliedChangeCount = countAppliedSparqlIriRewrites(rewriteResult);
 
   await putRun({
     runId: outputRunId,
@@ -409,7 +413,7 @@ async function applyMappingToCurrentRun() {
     tokens: outTokens,
     stats: {
       uniqueTokens: outTokens.length,
-      proposedChangesApplied: countSparqlAppliedChanges(inputRun, out, Session.mapping, { useNativePrefixes }),
+      proposedChangesApplied: appliedChangeCount,
     },
     mappingMeta: Session.mappingMeta,
   });
@@ -419,7 +423,7 @@ async function applyMappingToCurrentRun() {
   await refreshRunsDropdown(outputRunId);
   await loadRun(outputRunId);
 
-  setStatus(`Output run created. Applied changes: ${countSparqlAppliedChanges(inputRun, out, Session.mapping, { useNativePrefixes })}`);
+  setStatus(`Output run created. Applied changes: ${appliedChangeCount}`);
 }
 
 function outputFileName(inputName) {

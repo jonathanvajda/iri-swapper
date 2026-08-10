@@ -1,6 +1,6 @@
 /* sw.js - Offline-capable cache. Works on https:// or localhost. */
 
-const CACHE_VERSION = "myna-v1";
+const CACHE_VERSION = "myna-sparql-utils-v1";
 const CACHE_SHELL = `${CACHE_VERSION}-shell`;
 const CACHE_RUNTIME = `${CACHE_VERSION}-runtime`;
 
@@ -20,14 +20,19 @@ const SHELL_ASSETS = [
   "./app/shared/vendor/rdflib.min.js",
   "./app/ont-iri-swapper.js",
   './app/sparql-iri-swapper.js',
-  './app/sparql-iri-swapper-core.js',
   './app/iri-swapper-run-store.js',
   "./app/shared/namespace-registry/prefix-map.js",
   "./app/shared/namespace-registry/rdf-prefixes.js",
   "./app/shared/namespace-registry/rdf-serialization-prefixes.js",
-  "./app/shared/namespace-registry/sparql-prefixes.js",
   "./app/shared/namespace-registry/curie.js",
   "./app/shared/namespace-registry/namespace-registry.js",
+  "./app/shared/sparql-utils/index.js",
+  "./app/shared/sparql-utils/iri-rewrite.js",
+  "./app/shared/sparql-utils/lexical-scan.js",
+  "./app/shared/sparql-utils/prologue.js",
+  "./app/shared/sparql-utils/query-patterns.js",
+  "./app/shared/sparql-utils/query-kind.js",
+  "./app/shared/sparql-utils/update-patterns.js",
   "./app/shared/format-registry/mime-registry.js",
   "./app/shared/format-registry/rdf-parser-formats.js",
   "./app/shared/browser-file-io/index.js",

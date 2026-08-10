@@ -111,7 +111,13 @@
     })();
   </script>
   <link rel="stylesheet" href="./styles/iri-swapper.css" />
-  <link rel="modulepreload" href="./app/shared/namespace-registry/sparql-prefixes.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/index.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/iri-rewrite.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/lexical-scan.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/prologue.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/query-patterns.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/query-kind.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/update-patterns.js" />
   <link rel="modulepreload" href="./app/shared/namespace-registry/curie.js" />
   <link rel="modulepreload" href="./app/shared/namespace-registry/prefix-map.js" />
 </head>
@@ -288,7 +294,9 @@
   <link rel="modulepreload" href="./app/shared/browser-file-io/index.js" />
   <link rel="modulepreload" href="./app/shared/tabular-io/index.js" />
   <link rel="modulepreload" href="./app/shared/rdf-io/index.js" />
-  <link rel="modulepreload" href="./app/sparql-iri-swapper-core.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/index.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/query-patterns.js" />
+  <link rel="modulepreload" href="./app/shared/sparql-utils/update-patterns.js" />
   <script type="module" src="./app/sparql-iri-swapper.js"></script>
 </body>
 </html>
