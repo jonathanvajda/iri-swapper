@@ -23,6 +23,13 @@ import {
   extractSparqlRewriteTokens,
   rewriteSparqlIris
 } from './shared/sparql-utils/index.js';
+import {
+  createScopedConsoleLogger,
+  renderStatusMessage,
+  runLoggedAsyncAction
+} from './shared/ui-feedback/index.js';
+
+const logger = createScopedConsoleLogger({ scope: 'myna-sparql' });
 
 const UI = {
   queryFile: document.getElementById("queryFile"),
@@ -541,17 +548,18 @@ function escapeHtml(str) {
 }
 
 function setStatus(msg, isError = false) {
-  UI.status.textContent = msg;
-  UI.status.style.color = isError ? "var(--danger)" : "var(--muted)";
-  console.log(isError ? "[myna-sparql:error]" : "[myna-sparql]", msg);
+  renderStatusMessage(UI.status, {
+    message: msg,
+    severity: isError ? 'error' : 'info'
+  }, { classPrefix: 'mb-status' });
+  logger[isError ? 'error' : 'info']('status', { message: msg });
 }
 
 function runUiAction(label, action) {
   return async () => {
     try {
-      await action();
+      await runLoggedAsyncAction(logger, label, action);
     } catch (error) {
-      console.error(`[myna-sparql:${label}] failed`, error);
       setStatus(`${label} failed: ${error?.message || error}`, true);
     }
   };

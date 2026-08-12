@@ -33,7 +33,12 @@ import {
   readIriSwapperRun,
   storeIriSwapperRun
 } from './iri-swapper-run-store.js';
+import {
+  createScopedConsoleLogger,
+  renderStatusMessage
+} from './shared/ui-feedback/index.js';
 
+const logger = createScopedConsoleLogger({ scope: 'myna' });
 
 const UI = {
   ontologyFile: document.getElementById("ontologyFile"),
@@ -832,9 +837,9 @@ function escapeHtml(str) {
 }
 
 function setStatus(msg, isError = false) {
-  if (UI.status) {
-    UI.status.textContent = msg;
-    UI.status.style.color = isError ? "var(--danger)" : "var(--muted)";
-  }
-  console.log(isError ? "[myna:error]" : "[myna]", msg);
+  renderStatusMessage(UI.status, {
+    message: msg,
+    severity: isError ? 'error' : 'info'
+  }, { classPrefix: 'mb-status' });
+  logger[isError ? 'error' : 'info']('status', { message: msg });
 }
