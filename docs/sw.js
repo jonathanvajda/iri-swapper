@@ -18,6 +18,7 @@ const SHELL_ASSETS = [
   "./app/shared/vendor/jsonld.min.js",
   "./app/shared/vendor/xlsx.full.min.js",
   "./app/shared/vendor/rdflib.min.js",
+  "./app/iri-swapper-mode.js",
   "./app/ont-iri-swapper.js",
   './app/sparql-iri-swapper.js',
   './app/iri-swapper-run-store.js',

@@ -104,6 +104,30 @@
   color: var(--ont-muted);
 }
 
+#mb-app .mb-modebar {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid var(--ont-border);
+  border-radius: var(--mb-radius-md);
+  background: var(--mb-surface-ghost);
+}
+
+#mb-app .mb-modeBtn {
+  border: 0;
+  border-radius: var(--mb-radius-sm);
+  padding: 7px 12px;
+  color: var(--ont-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+#mb-app .mb-modeBtn.is-active {
+  color: var(--ont-text);
+  background: color-mix(in srgb, var(--ont-accent) 24%, transparent);
+}
+
 /* -----------------------------
    Dropzone
 ----------------------------- */
