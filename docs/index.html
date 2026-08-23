@@ -417,6 +417,7 @@
         return new Promise((resolve, reject) => {
           const s = document.createElement("script");
           s.src = src;
+          s.type = "module";
           s.defer = true;
 
           s.onload = () => resolve(src);
